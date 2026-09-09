@@ -1,0 +1,66 @@
+# =============================================================================
+# Risheh — local production-style deployment
+#
+#   docker compose up -d --build     → http://localhost:3000
+#
+# The web image ships with a freshly seeded demo database (8 users, 58
+# artworks; demo password: risheh1403). Data persists in the `risheh-db`
+# named volume — delete it for a factory reset:
+#
+#   docker compose down -v
+# =============================================================================
+name: risheh
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: risheh:local
+    ports:
+      - "3000:3000"
+    environment:
+      # Session-cookie signing secret. Set a real one for any serious use:
+      #   AUTH_SECRET=$(openssl rand -hex 32) docker compose up -d
+      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production}
+      # DATABASE_URL is baked into the image (file:/app/db/custom.db).
+      # Override it here only if you swap the datasource (e.g. Postgres).
+    volumes:
+      - risheh-db:/app/db
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Future: managed Postgres. The Prisma schema currently uses SQLite; to move
+  # to Postgres: change `provider` in prisma/schema.prisma, run
+  # `bunx prisma db push`, set DATABASE_URL below, and remove the risheh-db
+  # volume. Left here (commented) so the swap is a two-minute job.
+  # ---------------------------------------------------------------------------
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: risheh
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+  #     POSTGRES_DB: risheh
+  #   volumes:
+  #     - risheh-pg:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U risheh"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  risheh-db:
