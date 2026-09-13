@@ -1,0 +1,598 @@
+{
+ "mainCategories": [
+  {
+   "title": "فرش، گلیم و زیرانداز",
+   "subtitle": "قالیبافی و گلیم",
+   "tag": "اصالت ملی",
+   "count": "۴۵ اثر اصیل",
+   "cities": "تبریز، کاشان، کرمان",
+   "chips": "[\"قالی ابریشم\", \"گلیم سنندج\", \"جاجیم اردبیل\", \"پته دوزی\"]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAOIp3Dyx1xVxBrk6-AXxAACRWZYl7m7ck4gUofLsmHhyyfn-yS6fCcLTK7o163FY-n-RbAdZs48p1c0p00iz_dGutu3eI-1DqwpnTMOyIUSpr_Nrs01bARRazyOU1ntGz4qIaoLyiaOYeidTvQernx435XU8KK_rociQ5_RehUXDAUmSStchiRO8VmHXUOgaN2O53KSaJ2jDqUBam0u8ckQz5ZVc8iwHz7gXOqx7Ji",
+   "path": "/carpet"
+  },
+  {
+   "title": "سفال و سرامیک دست‌ساز",
+   "subtitle": "سفالگری و لعاب کهن",
+   "tag": "خاک زرخیز",
+   "count": "۳۸ اثر اصیل",
+   "cities": "لالجین، میبد، نطنز",
+   "chips": "[\n              \"سفال لالجین\",\n              \"سرامیک میبد\",\n              \"لعاب فیروزه‌ای\",\n              \"کوزه نقش‌برجسته\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBM5meXEnGGh-XrFQa7UPXmsTbwQwz6AH98KDk2BjUH9yyGTfi98JMXetheLtrWSnYx4tjYLpVmbsGfevfecNNQzuwaQESkOynajPDa1bOrKnmPdzH73XApCJ27VU9gxuc_ZuhtDMxsuLo8lKVH8UXpD1JDYx8lkVCK2Ww8FRO80fuYBHiRNZM4VUGxAwJLkqcL56vI-DKQx13AegI7-kBqpMUgA0wcKarbOafkCPJd",
+   "path": "/pottery"
+  },
+  {
+   "title": "میناکاری و قلم‌زنی",
+   "subtitle": "نقش و آتش بر مس",
+   "tag": "هنر نصف‌جهان",
+   "count": "۳۲ اثر اصیل",
+   "cities": "اصفهان، شیراز، زنجان",
+   "chips": "[\n              \"مینای پرداز\",\n              \"قلم‌زنی برجسته\",\n              \"ملیله‌کاری نقره\",\n              \"ظروف مسی چکشی\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuC6kf04h6HgAtEPrkFvt-5ueQmvsYwal92CNnsbF4-s1OYXEWv9Mrqb9A8uKaL5a6pkUKo-ro3_kW61LBsl2tP13aorWqLwszNv9dkGzc2bDWiba5xbAfo5M0zZtmaEduvfsxnabuijUQhIcucRqVjIHyQBP8wa5ljDf42ErWj7CtCgaoSGgWSFABw7dXNxnCtuUAPvqWb3jb6UgKx0-cQHer7Bw0Rfv7ePYTO-x-ev",
+   "path": "/metal"
+  },
+  {
+   "title": "صنایع چوبی و خاتم",
+   "subtitle": "خاتم‌کاری و منبت",
+   "tag": "هندسه قدسی",
+   "count": "۲۹ اثر اصیل",
+   "cities": "شیراز، اصفهان، آباده",
+   "chips": "[\n              \"جعبه جواهر خاتم\",\n              \"تابلو منبت گردو\",\n              \"خراطی چوبی\",\n              \"معرق چوب و صدف\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuD6FOy3vrB-tNbwT3oy47tWaflSbbZ7r7HvGjQynQQkM6iX_EGT1_npd_5nO7qqVVc1KastNm9HU1KfhGIvwhYeLNDRZpkrPTv5VifQK7CJnXB3jdERglLdtvbVjYaB-U_-dK-FqjKzBqs4j_uCzz1S4zDt8VIcz2SVvU5ZgyfhT7FSHCi9BWbbUPW_dj3CskAtUmDAXT7x87WsYZJuDi5k_L0CeRcvjXjiJW6QI5Aq",
+   "path": "/wood"
+  },
+  {
+   "title": "پارچه و نساجی سنتی",
+   "subtitle": "ترمه، قلمکار و دارایی",
+   "tag": "بافته کهن",
+   "count": "۲۴ اثر اصیل",
+   "cities": "یزد، اصفهان، کاشان",
+   "chips": "[\n              \"رومیزی قلمکار\",\n              \"ترمه ابریشم یزد\",\n              \"دارایی‌بافی\",\n              \"مخمل کاشان\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuArRhl8QttWHvYtFHr8yVkF6X-LT40aymSXq4Zrlq9v0F8vuWvHNK5TL0htnOcA8lD-nNuZq8G_XqVcG_t_jmpNCbsCkKektQ_obMbdJuTe-NfhvZvKwKKzwVNANVAqM-4gcWMzhxOjiIfvOUyoy2CcVg0OnaD2chCO_09aU_rNIzicL_FE5-JynQi1q8SVFkHRzPdQhekrEU2yTQ_smqFZsmJEzOXNeUNRZVvNYQ-V",
+   "path": "/textile"
+  },
+  {
+   "title": "زیورآلات و جواهرات سنتی",
+   "subtitle": "فیروزه و نقره‌کاری",
+   "tag": "سنگ و نقره",
+   "count": "۲۱ اثر اصیل",
+   "cities": "نیشابور، زنجان، مشهد",
+   "chips": "[\n              \"فیروزه‌کوبی اصل\",\n              \"انگشتر عقیق یمنی\",\n              \"ملیله نقره\",\n              \"گردنبند طلا کوب\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuCo1TuD_s9OlzRMbPOnGw5IYlXKSjE1dmaRCVOGrj7QFY141x5NXi3HGG_4q3d2XTygOpOXbDBkIC5xVQLP6OYAp3cbXJhrbXEpK9qEGOShUx_7lCrvori6px82OkVhzFuI9Y0G1NwGPPq4znKUUk2amBqWMDkyceczJc6VKgHbTzdsJ_3KVX8JI-y0EItYI2P5sW5hxEGX10QWMHRZ8PW6F5RcarrDTuFniT3kjW93",
+   "path": "/jewelry"
+  },
+  {
+   "title": "سبدبافی و حصیربافی",
+   "subtitle": "کپوبافی و حصیر نخل",
+   "tag": "الیاف طبیعت",
+   "count": "۱۸ اثر اصیل",
+   "cities": "خوزستان، گیلان، بوشهر",
+   "chips": "[\n              \"کپوبافی دزفول\",\n              \"سبد حصیری نخل\",\n              \"زیربشقابی گیاهی\",\n              \"چم‌بافی گیلان\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAsDGkvHugdwN7SHQYm1k9ziWB7Nt_repYtlqQ9ecdKZ6X7alBKfnMAvbe-mLoZxW-5CXEUt9sAeqHiT_Rwm_qS8tSIvRyOmH81MFcvLwPvwvQp8GGsl3A3PP43_g-ewml0FQKZvF4AO9IgIHWeINW5BWg-z2uFc6bThWg0mynNHdbuazJfq6sGUCi_WgWDf0lbgv406_4AYuWa1dYejtD7mxkODP5GvJBbqVffugDE",
+   "path": "/wicker"
+  },
+  {
+   "title": "تابلو ، نگارگری، خوشنویسی و نقاشی",
+   "subtitle": "هنرهای روی بوم و کاغذ",
+   "tag": "اصالت قلم و تذهیب",
+   "count": "۲۸ اثر اصیل",
+   "cities": "اصفهان، هرات، قزوین، تبریز",
+   "chips": "[\n              \"خوشنویسی و خطاطی\",\n              \"مینیاتور و نگارگری\",\n              \"تذهیب زرین\",\n              \"سیاه‌قلم و تشعیر\",\n            ]",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuD6DT1SyeKhzi_1bQ9lGxJHCqGV2GZyHzzpDkrgTcvakVzsQsCeyT3Q1mv2NUs46Y2p1q27MJkNOrwey3K7ndawcUMBBlKTNsulWNxg-74UMsocnkiDCqluahpJAyds4Y6utDUrbrtFcDm6t9oPEW0w46JVeDPy-8Dc-Dvz-FGL6hSyhkFaz5PWdAunP0YD8RNg3WnWolHANFSe3j_wK3LZSVYISpItwLNx5W1Le7Oc",
+   "path": "/calligraphy"
+  }
+ ],
+ "rugs": [
+  {
+   "id": "rug-1",
+   "title": "قالیچه ابریشم تبریز طرح سالاری ۶۰ رج",
+   "desc": "حاشیه لچک‌ترنج با نگاره‌های اصیل شاه‌عباسی، بافته‌شده با ابریشم طبیعی و رنگرزی روناس اصیل آذربایجان.",
+   "dim": "قالیچه زرع‌ونیم (۱.۵ × ۱ متر)",
+   "price": "۱۸۵,۰۰۰,۰۰۰",
+   "priceNum": "185000000",
+   "raj": "۶۰ رج اعلا",
+   "cheleh": "چله ابریشم",
+   "origin": "تبریز، استاد سالاری",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAD23PEApIc--PUWC6XlhnlS7rbpY1UiwMJxBvjKU5yyXvE_WIqXL20e3yFTAF2CWJQMp37SZPIs6_PxZwlWG-NcBw7XFtThuYU4KRbu5_v-BpG1t3q1ymbqIKVujm-3PvN0gPN7c9JWp1V_t5TkyBBnROySvYbE90jWZByqL1nvYIW8nlnjSIQM1Z9D2SoQInmx9ESk6t7vYLDIKxOw6CrJUOO5pUo9c7Oc7pmknCa"
+  },
+  {
+   "id": "rug-2",
+   "title": "گلیم سوزنی قشقایی رنگ گیاهی کهن",
+   "desc": "نقش‌مایه‌های هندسی ذهنی‌باف کهن همراه با رنگرزی پایدار پوست گردو و برگ مو. چله پشم مرغوب زاگرس.",
+   "dim": "گلیم دورو سوزنی (۲ × ۱.۴ متر)",
+   "price": "۳۲,۵۰۰,۰۰۰",
+   "priceNum": "32500000",
+   "raj": "رنگ ۱۰۰٪ گیاهی",
+   "cheleh": "پشم دست‌ریس",
+   "origin": "ایل قشقایی فارس",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBk94po4mkcuzF_6j51hGLhNsQHXONkRZXqOq52hFBcllROEnEuaMr96-nXQ_8eDlNgaXpoQkU9QWRXTu-i4g0-3tie8cd-WttrY_j6oCTyGXPMbDiZEqwlXQ8B1tdFAvH7k7NZ2DYDY39l-ICF6q2Q-kCrqj44NhamL3I57Pt4KYAt88FQf0B-l8mTUgqu1VQVxttppLxmvjVsBMd2CUr4EB07q3lZQBjP38QjYPXF"
+  },
+  {
+   "id": "rug-3",
+   "title": "فرش زرنیم نائین ۹ لا نقشه اسلیمی شاه‌عباسی",
+   "desc": "زمینه کرم عاجی با کناره‌های سرمه‌ای آرامش‌بخش، دورگیری شده با ابریشم سفید خالص کاشان.",
+   "dim": "قالی زرنیم نائین (۱.۶ × ۱.۰۵ متر)",
+   "price": "۶۴,۰۰۰,۰۰۰",
+   "priceNum": "64000000",
+   "raj": "نائین ۹ لا اصیل",
+   "cheleh": "گل ابریشم",
+   "origin": "کارگاه حبیبیان نائین",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBqHe-L4kAIgLSwVDxQQR-aX5IYkkzI5NF04ju6dPgI_eKm7HNJqoNlt_zJyumtr3jYCPT9ksEfA6dgwurGrq2yjqxe-OXFyA4BSRQB6XPl-oHXcFNoiBG_n_tiDphsRVNLZO6ij-4qiZ67CF8oNNrOyvXsHIIK-jHhE7_t6vbChMfD3jKzB69Hr2Qhy23fYLTRpCd87pKMGN6X_OSr4yPGTs_szQAthXSsm_01MFBA"
+  },
+  {
+   "id": "rug-4",
+   "title": "قالی دستباف بیجار گروس نقشه ماهی درهم",
+   "desc": "مشهور به فرش آهنین به علت کوبیدگی فوق‌العاده پودها و ماندگاری فراتر از یک قرن. رنگرزی روناس رونقی.",
+   "dim": "قالیچه تک‌خشت (۲ × ۱.۳ متر)",
+   "price": "۷۸,۰۰۰,۰۰۰",
+   "priceNum": "78000000",
+   "raj": "فرش پولادین بیجار",
+   "cheleh": "پود ضخیم مرطوب",
+   "origin": "کردستان، گروس",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuA91h9nSIfm9vnnztLlo-Vs0G5AS0ghxTgdjMcGZDXE4kx8pa4J00i81wz4LWLpWVdrfmnzdOZ7SYST803W_YKVZDUrymKi6ItBgm_ad8mO1Ho4gjZQEHqhdPUowhuZ4ilQd5zatj5rwc90rwIuIB4j880FXLQyH94qsyl7NPppiK9DvELdzTPSa-oh_-v1DVXrkozEE-vewTPdTNpWV0uOEzlHzo073DTSEnFkmvp9"
+  },
+  {
+   "id": "rug-5",
+   "title": "جاجیم دست‌بافت کهن اردبیل طرح راه‌راه نگارین",
+   "desc": "بافته‌شده بر دار زمینی با پشم لطیف بهاره، مناسب دکوراسیون اصیل، روتختی فاخر یا آویز دیواری کلکسیونی.",
+   "dim": "جاجیم سنتی چله‌پشمی (۲.۵ × ۱.۸ متر)",
+   "price": "۱۸,۲۰۰,۰۰۰",
+   "priceNum": "18200000",
+   "raj": "دستبافته نایاب",
+   "cheleh": "تمام پشم کوهستانی",
+   "origin": "دستباف کهن خلخال اردبیل",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDKlfr41IVUwqyFSM3Sw68bNdhDC0hF7eyZK4INV_50o2pSxLKdwqK0AD992krXZImDXI6zbNWnJRQvniUYHXszR-x2ZI0Oz7c56FKJEPoQmY2eoWFxcqldCTqWDtOQcYQGUYPx15WKhcuvXNn2xVu7w40FgL4LoaB4zcDK6fz9NAyX1laJ0lnylsbZjjp7gAtMi8kYiKRqIHxOUrX1kRphPXumC5ae34KFJFpCF6Fq"
+  },
+  {
+   "id": "rug-6",
+   "title": "قالی کرک و ابریشم کاشان نقشه اصیل ترنج محتشم",
+   "desc": "گره‌های متراکم فارسی‌باف با پشم لطیف بره و ترنج لاکی درخشان که جلوه‌ای شاهانه به تالار می‌بخشد.",
+   "dim": "قالیچه قردک (۱.۷ × ۱.۱ متر)",
+   "price": "۱۱۰,۰۰۰,۰۰۰",
+   "priceNum": "110000000",
+   "raj": "طرح محتشم کاشان",
+   "cheleh": "کرک و ابریشم",
+   "origin": "کاشان کهن",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAeNHMfNPawyrUl2D9N74gwDRJv7UdHxkJg3SMS0pTY6Em-HrjbxmNVzai59p-NPV01k37sVct_Kychuvr5y6tX8ACcpjxDzDO68zZcGabMdGvRD7m2Nl2WiZ3ejrylE6Zrr-0np1YgdQn0s8i_CNILzlat8dXDflAk-eMNgn2z5692lLYmNxa4SNHATu-e7pSrQ1XiObgFPZqWm20TZfVPJT-uGovnhGyhYrolihVo"
+  }
+ ],
+ "metals": [
+  {
+   "id": "metal-1",
+   "title": "گلدان میناکاری اسلیمی اعلا صراحی",
+   "desc": "نگارگری چندلایه لاجورد و شنگرف با لعاب کوارتز نسوز، امضای استاد مرتضی مرتضوی در کارگاه میدان نقش‌جهان.",
+   "specs": "ارتفاع: ۳۰ سانتی‌متر • وزن: ۷۸۰ گرم",
+   "price": "۶,۸۵۰,۰۰۰",
+   "priceNum": "6850000",
+   "tag": "مس خالص ۹۹٪",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAgnBBd55PILYj2-WsYGiWe4rjGLcHxWL-F8ucAUqiqJBNAFddI6mRwlH6bMfp4utOfpmsXerer5N40P32An5d-FZn0uoK4nL-zC5_dRdlyq0wTVsZdP8o3BMxX9x9wczbh1BX8WWSi3P1Njp0H0-uTcIoB7uFRVJE9GBwch0QKFR5wgrDI0YWyESVIHckG3lWxIKDWUI__HLiwD2xLFS6Aip7HuJExI4jGZpP047Ym"
+  },
+  {
+   "id": "metal-2",
+   "title": "بشقاب قلم‌زنی مسی طرح شکارگاه صفوی",
+   "desc": "اجرای بی‌نظیر ریزه‌قلم و برجسته‌سازی اندام سوارکاران با امضای استاد دهقان و شناسنامه رسمی ثبت میراث فرهنگی.",
+   "specs": "قطر: ۴۰ سانتی‌متر • مس ضخیم ۱.۵ میل",
+   "price": "۱۸,۲۰۰,۰۰۰",
+   "priceNum": "18200000",
+   "tag": "اثر استاد دهقان",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuD2XOImm1EDQf4vauZSXyuspqKmJ8TIIM44uPVQggcSP-Fib-J7SI4dQ_iT0kAMiA-O2IZ-i9xMRh7gGy3YJwd9PVGcrvK3zP-6TKQ9GYl1CUEVysoqb6gc8W_hKSy_OMwBvzj7_pHmfhFidZeoZ_kEAVxf-6hG8mmJcz3-8_dW4d8n4gcWsAH7x0i1lru9Yn5GwT7417Xxr3VmcDdE36-NMeKusR-jhdVyNff77MGL"
+  },
+  {
+   "id": "metal-3",
+   "title": "قندان مینای پرداز لبه‌کنگره سلطنتی",
+   "desc": "طراحی پرداز ظریف روی فلز صیقلی مس با درب گنبدی تاج‌دار، ماندگاری کامل رنگ در برابر گرما و رطوبت.",
+   "specs": "ارتفاع: ۲۲ سانتی‌متر • کنگره دست‌ساز",
+   "price": "۳,۴۵۰,۰۰۰",
+   "priceNum": "3450000",
+   "tag": "مینای پرداز ختایی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDoVUZuK4bCEoQ0d7SvR7QkpK0mELMhZR--RXxkNOhJi-lVSq7TJ3j4oRhHkorBXo22F9aBxgvKfmuwWQP9sXXRiON0D7suiOuZWR-aOk_zD3IggixFrMWdvFFL1FeejMeFy_yiUw1f2JmA1imYOn6mciA8qSd6uAgCMlJr5Xa9lkIddiyIfvFnhzO8X2fGg--F-Jb7AW3r7QQ8jtXCLzvUx_4f8h-eo7RBYPLRNkgb"
+  },
+  {
+   "id": "metal-4",
+   "title": "تابلو قلم‌زنی نقره برجسته «گل و مرغ بهاری»",
+   "desc": "شاهکار دست‌ساز با ظرافت اعلای سیاه‌قلم روی پلاک نقره استرلینگ خالص، همراه با سرتیفیکیت آزمایشگاه سنجش عیار.",
+   "specs": "ابعاد: ۳۵×۲۵ سانتی‌متر • نقره عیار ۹۲۵",
+   "price": "۳۲,۰۰۰,۰۰۰",
+   "priceNum": "32000000",
+   "tag": "نقره ۹۲۵ استرلینگ",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuCKH-8RM4xnFrdz8MDkhoO9rdVtCYyhMo60kWQbyuVXzp0KOWVJq2F8PgXWJRwJG9RclqgF4cMY_-t_OTRd0xKEnvGSTiZuw1ZQwwCdCA81RANDuF_bEVfMXguiD-DZjVW6jmccIY3DnK-Zejww45SFie4fFIcGw8ipyxJ2AY3KTuB2_fBZGrjbfy_u2ZuMIRBE-2_VuUzV7VkpK-GeM1j_BpsdG7nebI5RUs_Rd6Jj"
+  },
+  {
+   "id": "metal-5",
+   "title": "سینی گرد مجلسی قلم‌زنی اسلیمی و ختایی",
+   "desc": "سطح آینه‌ای فرورفته با بیش از ۴۰ هزار ضربه مغار قلم، پرداخت‌شده با دود طبیعی برای ماندگاری مادام‌العمر سایه‌ها.",
+   "specs": "قطر: ۵۰ سانتی‌متر • وزن: ۱,۶۵۰ گرم",
+   "price": "۱۱,۶۰۰,۰۰۰",
+   "priceNum": "11600000",
+   "tag": "سیاه‌قلم دوده اصیل",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuD-0tR6baLnRIRvs5PTJUmJ9bfjW9cPobCDW-m7cHIbnOijkaZ94-zM2fK4Cs2-1kScPMcTOcA7Xv0dqPWk99ZgIb-rpRMFqNLJeak0krSmURGZqJjfxWznQLOPL0LJF_ByjG7inrrFVtVoai1QBzjMwqsYkl6EjASnvEulSWoR_xiykGgQsUD-BcRP2xmHSfmUFoaukyclAnjQ-b2Sru2o2Uv6D3eyymLxJ-vDnhoU"
+  },
+  {
+   "id": "metal-6",
+   "title": "تنگ و قدح میناکاری شاه‌عباسی زرنشان",
+   "desc": "ترکیب نقاشی مینیاتور درباری و نقوش لچک و ترنج سنتی، آبگینه و لعاب پایدار پخته‌شده در کوره ۸۲۰ درجه کارگاه شیرازی.",
+   "specs": "ست دوپارچه تشریفاتی",
+   "price": "۱۵,۹۰۰,۰۰۰",
+   "priceNum": "15900000",
+   "tag": "مینای خانه‌بندی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBuYQp2XqXZbNnonfoBnqPWkR9gPpdgYBhXEgI6UfNrxGghvO7QM_R-AocUfzzvofM5uHqVOLkDCxefMBlktBN0cYwKPmP9wYOSxAu6pxcqmdiLQE6IItATawcH_5LZnj5j__IxGiXNuWWrJJR0X5FS3PSxQBu9mag8-47vfcLks3ouOxnbb2k7OcEb3NTDVq1A4vzZL9-5wTJMqgGS0UYpOOYHS5MnRnn6aHhbjOlq"
+  }
+ ],
+ "pots": [
+  {
+   "id": "pot-1",
+   "title": "کاسه سفالین لعاب فیروزه با حاشیه کنگره‌دار",
+   "desc": "ساخت کارگاه سنتی استاد عسگری، لعاب سنتی پخته شده در کوره هیزمی، مناسب پذیرایی و آرایش فضا.",
+   "author": "استاد رحیم عسگری • لالجین همدان",
+   "price": "۱,۸۵۰,۰۰۰",
+   "priceNum": "1850000",
+   "tag": "لعاب قلعی فیروزه‌ای",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuC8ZjIgkf-m_o6nDQ-haMBWF7gSiLv7vUaQdP8PQqstMLZn9uZFRmHEjefwcovQbvUuh4jpX3Br59qobTNu1hHs9Nl71zp98iLFw7fNtwoWtOHYXND3vsv1cDmaJtwa6Rh43P8YXuoW9PuQSnQ936pY-HLlqViskbuaeqfQV-xpzZfvEwA4a0uzOb3NOOnKyAjzOPMJp7vCu3ywJhKWhjDZm1i1H4Q7T7NuA_gOQHQq"
+  },
+  {
+   "id": "pot-2",
+   "title": "گلدان سرامیکی کتیبه‌ای طرح شمسه و گل‌مرغ",
+   "desc": "خاک سفید کائولن با قلم‌گیری دستی اکسید کبالت و مس، همراه با مهر اصالت کارگاه آقایی میبد.",
+   "author": "خاندان آقایی • میبد یزد",
+   "price": "۳,۴۰۰,۰۰۰",
+   "priceNum": "3400000",
+   "tag": "نقش گل و مرغ",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuB4JRttTd9Tjv7ZDBwp7YdbtZ26FAm_azO7d7M-G-fP3_L9XpUNaoa0RaSITJ3lVidLwc6VJqgBMmCvrWfW-Ay70-r_T5iz4s72Cbl6lzOt1Tq4GR-NB_yp63T7t01RpG4WSBZKdT7fuO8j16957yMl2zsnAgoh4JsBqcNlBQ9dDWtKv3PeLpcUQ_t-FnssJpWr0My09tMeceUCaZ_v4SRATbEfHKMpYpsCCGmr2GKO"
+  },
+  {
+   "id": "pot-3",
+   "title": "دیس زرین‌فام بازآفرینی مکتب کاشان قرن هفتم",
+   "desc": "درخشش رنگین‌کمانی فلزی مس و نقره ناشی از احیا در اتمسفر کوره، کتیبه اشعار نظامی گنجوی.",
+   "author": "استاد عباس توسلی • نطنز کاشان",
+   "price": "۱۴,۸۰۰,۰۰۰",
+   "priceNum": "14800000",
+   "tag": "تکنیک احیای زرین‌فام",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDHdxnjtZmNkjYCik19KKSWeTb05osTicQd6r6D29WIUb3LAYgeKC2lGbvsMjeBsLOQ0Dx-MCYNtWC8QEsnRY5AkO6qopawjrOv51pSwmtYgdMdTijGFRw3IkjKye4Lma3KrOtJiC5HndBj-DdX_avO7gD3dlT4etRvpDEn8RvEb92Pj39DqVhIHorpqUEXEm4Tv-KNu8ABSu-FQweFtBwR5fhmrHIaJ6OmdR_FulEY"
+  },
+  {
+   "id": "pot-4",
+   "title": "تُنگ آبگینه لاجوردی با دسته پیچ‌خورده کهن",
+   "desc": "دمیده شده با لوله فلزی در کوره شیشه مذاب، با بافت حباب‌دار اصیل و دهانه‌ی چین‌دار قاجاری.",
+   "author": "کارگاه شیشه‌گری مروی • تهران",
+   "price": "۲,۱۰۰,۰۰۰",
+   "priceNum": "2100000",
+   "tag": "آبگینه فوتی سنتی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBP90FkCA6-uZ0brmeAReO8W1JsVYBl-6Awb2yygEJWYjBirMTIDGhNWL5D_UBt9YbeVYvQcwQMdo_IaVSbgSUl7PWVyVm0jN7pwL3n1Ygga-fUrZXiKi6xYhQsBPL9JeV_ncaYae7M9hp0mBdOmU3gxQPYsm2Ngnbd0r9_yIcnYv_bsswh5lVSYDKR2lsevG9NPDqAxSFYtKezMfJxbVHMFxnmeidrS2yMVE6iY7oU"
+  },
+  {
+   "id": "pot-5",
+   "title": "دست‌ست شش‌تایی پیاله خاک رس کتیبه‌دار",
+   "desc": "بدون لعاب شیمیایی، پالایش‌یافته با صیقل سنگ عقیق و دود چوب انار، طبیعی و دارای تنفس سفالین.",
+   "author": "استاد حسینی مقدم • مند گناباد",
+   "price": "۱,۴۵۰,۰۰۰",
+   "priceNum": "1450000",
+   "tag": "خاک رس سرخ طبیعی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAkgfyuS64RQIcSMM1LCbenkfmdtYDdHDdZxMPCyYvf19ZRkkRV7yjYODL1mhXpFdJWyYyc4udURMXxcSxcZvujXN4wq6StlkEoVmyKTcF8TNjAAjHHXFQJgNAnG4E9mi8xjd5Uw_1JnLey7uNYzxjShMmkeNjfOG1sDmS7ySSiGObG3yqH5-XrrakQywNOKaF1Dvq1WJeYjajs4YPTC4QTdU6rmh64gXBbpUKHMNrG"
+  },
+  {
+   "id": "pot-6",
+   "title": "ابریق سفالین فاخر با خط کوفی تزئینی",
+   "desc": "طراحی برگرفته از ابریق‌های موزه لوور با کتیبه «العزّ و الإقبال»، لعاب فیروزه‌ای کهن با پتینه مات.",
+   "author": "کارگاه احیای سنت ریشه • لالجین",
+   "price": "۴,۹۰۰,۰۰۰",
+   "priceNum": "4900000",
+   "tag": "کتیبه سلجوقی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuCvRP9IvRlJV57wx4K3Kwm9vhelVMK3nhPuInzOFL159unOKqp_JyVBOVK966hI-MbBxIMiX13Nd3A8CymJ4wDnYNyuR6JkZHaqJSw1ln6huZnWi7K1nefKT5Qo5N2i-CtD28kpBKABMP3m9PiW-gEeQVaLnRSueiSS3cJe2nNjLhchHvLtv-5LyUZD0nUyxgqT7aiW0PbHxTsYjpsvu_euI7ASNQGf53mu0dtVi3qr"
+  }
+ ],
+ "woods": [
+  {
+   "id": "wood-1",
+   "title": "جعبه جواهرات نفیس خاتم اعلای شیراز طرح ترنج",
+   "desc": "ساخته شده با چوب گردوی کهن کردستان، استخوان قلم‌زده شتر و سیم‌های زرین برنج ناب، همراه با آستر مخمل جیر درباری.",
+   "specs": "تراکم پره: ۲۴۰ گل زرین • پوشش پلی‌استر ۷ لایه",
+   "price": "۱۸,۵۰۰,۰۰۰",
+   "priceNum": "18500000",
+   "author": "شیراز • استاد گلریز",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuB2gpz8cF9E_aD6LXOEdHcsfsyBw1T74kVZ58Qpb7KC-b8XZ4PnAjpAUQW9okopj_5hNM7J7dNm1v-ZLN-2MseNPrRKX2Iag9p--j-ws8GZmqrC61qyBgxwS1xxO3pqFlfwpV6-IxbXSQe17jM9HT-OMKi-rx_pUbc5tHuap_HjI6-2qb5Xv1qZmuQGUGHu3j3hVXaN77gBup010kYT0UdtoebrLPX_XbCmKeyJJtNq"
+  },
+  {
+   "id": "wood-2",
+   "title": "تخته‌نرد و شطرنج سلطنتی منبت چوب گردوی کردستان",
+   "desc": "نقش‌برجسته تمام‌دست شکارگاه صفوی با خطوط اسلیمی دهان‌اژدری، بدون کوچک‌ترین پیوند صنعتی و کاملاً یکپارچه.",
+   "specs": "چوب گردوی ۳۵ ساله • منبت دوپوست",
+   "price": "۴۲,۰۰۰,۰۰۰",
+   "priceNum": "42000000",
+   "author": "سنندج • استاد صانعی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBazNyjA_vr6uiyU-8YZnL2ow2f-Ewzymsc_kfFcxwUAekkksbCx-K_0Ym8GkR5I0GWX10gmM8gl_k-Mt2vNlcRs5wbwI-0wPwzZuk_9Y8_1paPthZnE7NXtKh5YYwNrnlnfyuKAt4cXk_Y-xXNKVgxvdIwCPStVFyxLDxpCz80MM_CRJqVUSW4vQGl3obIjErbOx-Nyc3uoEzhHmmeJaYYiPJIaARIEpm7aIf91QYm"
+  },
+  {
+   "id": "wood-3",
+   "title": "قلمدان معرق صدف طبیعی خلیج فارس و چوب عناب",
+   "desc": "تلفیق درخشش صدف‌های بومی خلیج همیشگی فارس با چوب تیره عناب و آبنوس در ابعاد ۲۳ سانتی‌متری.",
+   "specs": "معرق صدف هفت‌رنگ • بافت عناب",
+   "price": "۱۲,۸۰۰,۰۰۰",
+   "priceNum": "12800000",
+   "author": "بندر لنگه • نگارستان کیان",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDX8ys6px2pRwjYuZFR2JIBIKGudrUu6Y8X4hT3ffV1fnv6FI95n5OARfrBPK2zBqDUj4bBLDyo3jcN_DBD0pznECO-mng2nfliA1DWRTUvdyY_72UFbknFZ586fqzlMzfFEnogo5eId3tdV8OCtMbb_3dLIEoPJ2qH8sje5hxJ6r8omTk4x2cA0LoqqCEHb5SDAnvf_G_VsTlx6LtZUCSVAkwZkr_5OUlByOwAobpm"
+  },
+  {
+   "id": "wood-4",
+   "title": "شکلات‌خوری پایه‌دار خاتم اعلا و مس دست‌ساز اصفهان",
+   "desc": "جام مسین ضخیم با روکش هندسی یکپارچه خاتم شیرازی، پوشیده شده با فناوری نانو ضد سیاهی.",
+   "specs": "مس ضخیم چکش‌خورده • نانو لاک",
+   "price": "۹,۲۰۰,۰۰۰",
+   "priceNum": "9200000",
+   "author": "اصفهان • کارگاه هنرور",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBg_qqrwjKqBWG3oXwIux3KjmoZVgtUQAcPGZnElDD4vio00wTcF1NLMCrmnNB5vh0dlm7ExiFdXwWJbk846tiRpI1oa9MhxKkaqfMgtj4vSH43qbJQg2JLuOh7AbOI83pjFYYGbGfFTYhjuesmWsA9-yoKWvoJGKC34DCura8RnZyGEHGden94UOftvDMJy6xP25y1jHm7fWwqIIb_i0EuwrPpPDymWi4uNY-sghXE"
+  },
+  {
+   "id": "wood-5",
+   "title": "آینه دیواری منبت‌کاری ریزقلم آباده طرح سرو شیراز",
+   "desc": "نمونه‌ای کم‌نظیر از منبت آباده فارس با قلم‌گیری میلی‌متری و گره‌چینی‌های اصیل ایرانی در حاشیه آینه.",
+   "specs": "ثبت یونسکو آباده • چوب گلابی و گردو",
+   "price": "۲۶,۰۰۰,۰۰۰",
+   "priceNum": "26000000",
+   "author": "آباده • استاد امامی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAB86-58OIbWgjyGkYnQDMK00BBVuFQ3w6hR6-iZbeBshVcAz6yZZmRYGDLayrelyPdmfNur1W6-Edx025EdyIHcwGu27CbXvXyeZPvgQkNxHVrZEZZ9IGTrfFvwuAE_Z3jcg8SLLleOIjtTDokf9vjUJ8P36pBL3w5mqlWKNek5JL-CdoeokNMpYiI-BjYYjg66R2IonerZZHkg_eZXO0GcBpUCBt9qRqhN-DKLAmI"
+  },
+  {
+   "id": "wood-6",
+   "title": "تابلو معرق چوب نفیس نگاره سیمرغ و کوه قاف",
+   "desc": "استفاده از تفاوت رنگ طبیعی چوب‌های نارنج، سنجد، شمشاد، عناب و اقاقیا بدون قطره‌ای رنگ مصنوعی.",
+   "specs": "معرق ۱۴ چوب خودرنگ • ۷۰ × ۵۰ سانتی‌متر",
+   "price": "۳۴,۵۰۰,۰۰۰",
+   "priceNum": "34500000",
+   "author": "تهران • استاد ستاری",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAnWCHB5TmEmB34-IIABejKN7f3Ubmr26WRKDNVfZhoY-yISnWIySoRzJtHBsAeFD1VS__mYkQqt8zaUf_NaSPGHYchRQ6flxknv1weuerQMglPVLdMbJoqURavAS5GR0iVnvfdD6uTHMKsyYGDuF2Fy4MXfzz7Bq2Gf3wjhz1STetArZJRGVZpDhUBm0x1oR0x0M1QwX1S4qLm9T07_GPbHKGqRV5CgmsfZXNktSBb"
+  }
+ ],
+ "textiles": [
+  {
+   "id": "tex-1",
+   "title": "سفره قلمکار ترنجی شاه‌عباسی اصفهان",
+   "desc": "چاپ سنتی ۷ قالبه با ثبات رنگ قطعی زاج، ابعاد ۱۰۰×۱۰۰ سانتی‌متر، پنبه خالص بدون مواد سنتتیک.",
+   "author": "کارگاه قلمکار استاد زابلی‌نژاد",
+   "price": "۱,۴۸۰,۰۰۰",
+   "priceNum": "1480000",
+   "tag": "قالب چوب گلابی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAmDQzPzqrFJV6tz4u40rq8OXt14IYib7l1l0NXbtquLuUWbyh1yU1a5mj40WRIddKsB4W0fChfzYEnwZaaVGlGxhexgswGUQtP5pDis8VKyJQ_cGC1C-ImGO4TW5GxHvmsRHj1vW8u1E1TCYsl2QjMtnOIn0DnqZqaRvEVv0RU5ICBmZUzsgWLy0O5EbBjKMhMvdcmuvSuWnTI1f_niGbSAZ0X4dGIjn4GYGUELiyS"
+  },
+  {
+   "id": "tex-2",
+   "title": "سرویس سه‌تکه ترمه ابریشم هفت‌رنگ",
+   "desc": "تاروپود ابریشم طبیعی با تراکم بافت ۲۴۰ گره، تراکم فوق‌العاده زربفت، آستر دوشس زرشکی و نوار قیطان‌دوزی طلا.",
+   "author": "یزد • ترمه شاه‌پسند حسینی",
+   "price": "۷,۲۵۰,۰۰۰",
+   "priceNum": "7250000",
+   "tag": "ابریشم ۲۴۰ گره",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDtj9vqUx312zqy_I0CnjUcG9uvoR4MjFiWx6TCRpVH8fbtpZVECah94q1osm2AcHzP27Zeb0dzJWLIsKGsNAxxUPKVXuCux7PFHEZeqlcLh5M5hy_rrRc3LpDqDJLHHq1WHbbH1Bu3y_CYoaXqVasUnrjBmIcijthwRXNX7M3__asOv3W2SYSkhrATDX2pJA2zWo0a5eOpe4Aah7JPYIyEYf3Z7epa2Te2hPoKkqVb"
+  },
+  {
+   "id": "tex-3",
+   "title": "بقچه پته‌دوزی گیاهی عریض لاکی",
+   "desc": "شال زمینه پشم مرینوس خالص با دوخت پرکار ساقه‌دوزی و پتک‌دوزی چهارگوش، رنگرزی روناس و گل‌رنگ.",
+   "author": "دست‌دوز بانوان سیرجان و کرمان",
+   "price": "۴,۶۰۰,۰۰۰",
+   "priceNum": "4600000",
+   "tag": "پشم مرینوس کوک‌ریز",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAUOLcACOyleuzAnGsbOVs1A2DKmGpY_bAxj3mm4pXLSj1yA1FM7lJ48HTQy4W2JkQ_6k6OAOJJLNkHSQXBjDcLiJWLLcwFabdWZiEMQ5FOUMKRPSL1ttLmr0WP1WGuDzu8-I0zk_NwjgteF79QaLRy_L1b1AOwx4bsBTk5nj6Q9gGrMltLicPLFgWIRpCOxSIiIOeVi1UDl_a98cUJtIcCHYeq4VBTHjHXh0fRD6CR"
+  },
+  {
+   "id": "tex-4",
+   "title": "شال دست‌باف ابریشم کج‌راه لاجوردی",
+   "desc": "بافت ظریف تاروپود ابریشم گیلان با ریشه‌بندی دست‌پیچ، لطافت استثنایی و سبک وزن، مناسب پوشاک و دکور لوکس.",
+   "author": "دستگاه سنتی پاچالی • کاشان",
+   "price": "۳,۱۹۰,۰۰۰",
+   "priceNum": "3190000",
+   "tag": "شعربافی کهن",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDQcxfEe7fxOAi8aX-z_HE1C3cQvzpEOw_Psl_ygW9b09eg91wwFvp3yRHQ4u2t6PWIuf3mPj-UpnuMRxKtqrQdb_gneFik78IDtTc-1j01KGxp_nX0M0z1fZ-Bt6o35SVfx6ApqvQr2ZU4Yq1mCzB3vTpyMREzAsFgvPMp_2SgKT--zjTRHzKPBhGMjG3gsBWwUVg-HxmzrKNFJgjM4DZE47gXbvAG0zOHxSlkjEBF"
+  },
+  {
+   "id": "tex-5",
+   "title": "رانر قلمکار کتیبه‌دار طرح شیخ صفی",
+   "desc": "ابعاد ۴۰×۱۴۰ سانتی‌متر با حاشیه اشعار کهن، چاپ شده با ۱۱ قالب چوبی متوالی، رنگ‌های نیل، زردچوبه و مازو.",
+   "author": "کارگاه پورصفا • اصفهان",
+   "price": "۱,۱۵۰,۰۰۰",
+   "priceNum": "1150000",
+   "tag": "کتیبه نستعلیق",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuC-_1iZojkknxuAicm5qbeWvthkrpn9EAZYzW4kYg_ObIIrwYDaIFYu-VDGKqC7U0TTHj-MfVOn6HfjQVFvqzVthQqZYEHz3R377Sm_aGk3GwyS0yRL87Vf5_DNFq4iHue4rE9RY8qyhGbNHw-bMG-A80TAOp4k4nuE68ZEgccattc6HhfZkE5VE_xsDDs5U2bVPSRl2H1m39z7_3giJNIRsK-6_u_pigklueEG4K3b"
+  },
+  {
+   "id": "tex-6",
+   "title": "پارچه دارایی‌بافی (ایکات) حوضی یزد",
+   "desc": "تکنیک بافت همزمان با گره‌بندی تارهای ابریشمین پیش از بافت، با الگوهای کهن لوزی شکسته و درخشش اصیل.",
+   "author": "میراث غیاثی • یزد",
+   "price": "۲,۸۹۰,۰۰۰",
+   "priceNum": "2890000",
+   "tag": "دارایی‌بافی ابریشم",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDt-8h3PhqUkWB6nYP1vuIpzE_qSl3spT1PJ8troIKvPYsgaaPGpaLQZPnru6dhtaJwYRZkuz9uxu06XvLu3idn5gAkvQL1hnGkmBAINQE_p4wCbt18VvDQJK-diZ4vyZ3GnHF6GUaEJTtojMZFZ0k44NoMEPm_LFFwboqlpwfp7ObmrOk07WOm5zb6wnxzTq4YpGGNNDOmRsAc9eY0uAuvGhWFfm7hSs9uAA5Wt1x6"
+  }
+ ],
+ "wickers": [
+  {
+   "id": "wic-1",
+   "title": "سبد کپوی درب‌دار طرح خورشیدی دزفول",
+   "desc": "بافته‌شده با هسته کِرتک ضد آفت و روکش تار و پود برگ نخل، بافته شده توسط بانو ماه‌نسا در دهستان پامنار.",
+   "author": "بانو ماه‌نسا چناری • دزفول",
+   "price": "۱٬۲۸۰٬۰۰۰",
+   "priceNum": "1280000",
+   "tag": "پیش نخل و کِرتک",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBpYewW3LIOGKJn3zIst2kX04bfYWDGWmVap6NlvbtpjlPef65Mhp_o47i7nu9d3TFjXJr_mQx3_ba9tlZrkeCJ7zZnQCib2Y5Gu1dynWfOCTA9Tl4ugLzDsQ_2IsRsEIaT9mXrJ0fQl9Rx9Xd8Qfx36EgWX2M6mYwbSjBI5L8Rh4e4kT6XUFRED5yBmpNfJa1ya51PedK1_LPfKbzdKKTyfzc1cla2FY5CkQUIZgYb"
+  },
+  {
+   "id": "wic-2",
+   "title": "گلدان استوانه‌ای مرواربافی دسته‌دار",
+   "desc": "بافتی چشم‌نواز و یکدست از ساقه‌های جوان بید ساحلی با استحکام فوق‌العاده مناسب گلدان و تزیین مدرن.",
+   "author": "خدیجه پورعلی • آستانه اشرفیه",
+   "price": "۸۹۰٬۰۰۰",
+   "priceNum": "890000",
+   "tag": "ترکه بید سرخ (مروار)",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDMpI4G-_gTMgU0CbUf5w91iu7LXJKUw-2zqwDkLIRVbBMGvM1YyA-T_cICvF10wErv16woaK06uESceEb-roorn0xGLshhF3vKxz7m579VU9Z0ppOk_wLIGBgzOsBsgvtKFdF1cnAO-7JzZMHZvJZhRblzsfww0GSK_5SueodUjXXWdWfWjdmr-XwWu8DI0JdMEc9EvsUmJLQzjkhnsh9S0EhwEaocNHn1jL8hw3Vt"
+  },
+  {
+   "id": "wic-3",
+   "title": "سفره حصیری گرد خوص میناب طرح ستاره",
+   "desc": "بافته‌شده از ظریف‌ترین جوانه‌های برگ نخل مکران، قابل تا شدن و شست‌وشو، مناسب سفره غذاخوری و دیوارکوب.",
+   "author": "زرخاتون حیدری • میناب هرمزگان",
+   "price": "۱٬۶۵۰٬۰۰۰",
+   "priceNum": "1650000",
+   "tag": "خوص نخل مکران",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuACWFJnShmwwapZAVSbCCR49ig1DIC-GXmE5gLMMmBvIL3U-QqoDacMx8jWSZWnmiQtWrFIdfaSbm0bKmzEf4VtY4dXmgpGrtg6iFviw3Zhe5bIVUMmArWnouaeAe6q19EmWlbNMTKHvZZomncICJe5g5V6N2Kb-Qn13j0su8BJheS2yxrPq3i4IAQPX_GSF6H8ZlkO-aWDNbwwCFL4faKMBhMS8HnPU8hBmqtUHVRv"
+  },
+  {
+   "id": "wic-4",
+   "title": "سبد میوه‌خوری دسته‌دار ارگانیک چم‌بافی",
+   "desc": "ترکه‌های سبک و منعطف درخت بید با گیس‌بافت دولایه، بسیار بادوام برای پذیرایی روزانه یا پیک‌نیک‌های تشریفاتی.",
+   "author": "سیده مریم موسوی • فومن گیلان",
+   "price": "۶۴۰٬۰۰۰",
+   "priceNum": "640000",
+   "tag": "چم‌بافی پیوسته",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuD51H0GxzflshrKnAk55fKNsPb974U8zqN0gxU4UL70ezXspJS6A0YenQq4QaPNv7oWIsvrkUwX34K9PDEEUMCEr-e5zq56z_PCpdF1aJcerc_DPwx1IPyhvvhbclmJA1UTUMoABtnEn4y1unJdEEskXJromAVlMZIrZn3noIpNmPQgxKYycbGvapIEQKbElyXyJZEMjblqqujx9CUEj2-9lH4-8OIfu9Ulw9XA6xRn"
+  },
+  {
+   "id": "wic-5",
+   "title": "جا نانی حصیری معطر به برگ نخل نخلستان",
+   "desc": "جریان آزاد هوا از میان منافذ ریز خوص مانع کپک‌زدگی نان شده و عطر دلپذیر نخلستان‌های جنوب را در آشپزخانه پراکنده می‌کند.",
+   "author": "فاطمه تنگستانی • بوشهر",
+   "price": "۷۴۰٬۰۰۰",
+   "priceNum": "740000",
+   "tag": "تهویه طبیعی ضد بیات",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuCMYsH46LgO2mTJ2B_gA74IVNHQztQ8vMWOTKHgwzH-L84_tnvkDq2yO-snSjDYA_t8USkk9MIqykTY_saoeC7ArFPHcx3WQPRZcNQnO5Nb8mvHZDRVu1eNcYbOH8hIGKGd8V7qcEKexIppa7P8ImdpWBjV9k7oNeI_xvhym099SRX7-bp1FrskYkgftkk2Kki3fPJdHv6ng5eZDFXT9Jm74E3GLQFfXMt_5gOOkyEd"
+  },
+  {
+   "id": "wic-6",
+   "title": "کاور گلدان بافت فشرده سوف تالابی",
+   "desc": "ساخته شده از نی‌های مردابی با مقاومت ذاتی عالی به رطوبت گلدان، آستردوزی شده با کرباس طبیعی خام.",
+   "author": "نرگس صیاد • تالاب انزلی",
+   "price": "۴۸۰٬۰۰۰",
+   "priceNum": "480000",
+   "tag": "گیاه تالابی سوف",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuCZVxp7A2UTFCLFglevO2fz3jU4AQwq3TQzgJmOh_bLpjI6g-uWR_yLsq3CdfZZ1v-atnefKs75n9YBGZoOKjN8sOGiS2OALJZFcm0tMigo1i2RqzIH2bNoBiuXi3YrOB9mGjEyUvLf9G1dC787er_LDeOPUxlcgwRDNsOoo6kp2NQ3owAIQVLcnAVKHEGAPEu2oRZYChR42Cv7vvC66gdcvdZigcXPyn6EbFwy2TcW"
+  }
+ ],
+ "jewels": [
+  {
+   "id": "jew-1",
+   "title": "انگشتر فاخر فیروزه نیشابور رکاب شیاری",
+   "desc": "نگین فیروزه کهن معدن بالا نیشابور با جلای طبیعی و طبع شیشه‌ای، احاطه شده در چنگ‌های دست‌ساز اسلیمی با نقره اصفهان.",
+   "specs": "عیار: نقره ۹۲۵ خالص • سختی: ۶ موس",
+   "price": "۱۴,۸۰۰,۰۰۰",
+   "priceNum": "14800000",
+   "tag": "فیروزه نیشابور عجمی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAz5v22JD9BEO2uLvaarvR1oEzEw8avaQ7h0rsiF2IZBWYpa1HadBOF4jOx2F1dPWak95M3R-0IzV4WctGU9dfDi1k8l1iNy7v20bXZdXfGPQISkdu3DhEIwyHeYIbx7zuE2_Ga8sXmvrbTU-jzNbtFA-JSee1hjYyge0HgjE9mlKZo0H_ESAqWPMpQq3NwDY3ONxOS1BupE3TisXBA2VNrzI83O7Z-JN944IUOv2Kj"
+  },
+  {
+   "id": "jew-2",
+   "title": "دستبند ملیله زرنگار زنجان طرح بته‌جقه",
+   "desc": "بافته شده از تار و پود مفتول‌های مینیاتوری نقره با آبکاری طلای ۲۴ عیار مقاوم و قفل جعبه‌ای مخفی سنتی با ضامن ایمنی.",
+   "specs": "نقره ۹۹۹ رشته‌ای + طلا ۲۴ عیار",
+   "price": "۲۲,۵۰۰,۰۰۰",
+   "priceNum": "22500000",
+   "tag": "ملیله‌کاری زنجان",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAZPfHxhm2qJkFQ8GpUUKZNQBkFweHRpJT9INsdHGM_Ol5PafXmR1H-5KNF3ynYgoPjXyCG5PCF8IRY1tpPfz6tM8bJwDJeK1_Jdy0ql9fvN9ip-MuZYBdqpfaV1Y-B-VAPm_UDLKyQerXp37JEQ_-XagEMlokm0tvKyUFlSHO8xMv-RDGLDDcsEf50O77jeBji7NCea8pEDfdiblC9IQL8B6MqrHKjjfhsx7n22rip"
+  },
+  {
+   "id": "jew-3",
+   "title": "مدال آویز عقیق سرخ یمن با ذکر «و ان یکاد»",
+   "desc": "گوهر سنگ اصیل یمنی کبددار با حکاکی ژرف خط نستعلیق ممتاز، قاب نقره دورچنگ مشبک و همراه با زنجیر نقره ونیزی ضخیم.",
+   "specs": "عیار: نقره ۹۲۵ سیاه‌قلم • سختی: ۷ موس",
+   "price": "۱۱,۲۰۰,۰۰۰",
+   "priceNum": "11200000",
+   "tag": "عقیق سرخ اصل یمن",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuA18P9NNbQWqj4E8qcmLuec5gzYQ1DYRkPWLFDRmazt6FmJAiGIouwUgmNH1Um-Ipn2nFobq41Bp8da6Uxs6F2nQykGQDDs_AuxklW6GEjIPZwLVgDo3o3lURgsPomQjNLBhyBKbKoo9VH8jRcFJerGu3wm2hczzsFWantssvU0d7Odc98tf2De-a-4wLshUEwCu1vB7NZ4JHObd8XhOqRo-Ahlx7LyDiZ9nSW4yJYq"
+  },
+  {
+   "id": "jew-4",
+   "title": "گوشواره چلچراغی مینای اسلیمی و مروارید",
+   "desc": "تلفیق نقوش شاه‌عباسی میناکاری شده با لعاب گرم بر روی بستر نقره زراندود، پایان‌یافته با آویز قطره‌ای مروارید طبیعی خلیج فارس.",
+   "specs": "نقره زراندود با لعاب کوره‌ای • مروارید اصل",
+   "price": "۹,۴۰۰,۰۰۰",
+   "priceNum": "9400000",
+   "tag": "مینای خانه‌بندی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuCSPlXWWvD2RasBqv37xypmNbOoXyQ0-OEPiFlkQwo7sFsqVevXksaSSWieneRN0jDqh96MQuCEsAWr2jW80o4HPxi3Mx0WOM5dQsx7UQvwvH-g5gTODKMmq-Xp1Lekx9gALMKwXofOUSPLa1XVgC55_5eWNX7tCznPiPbSXeJ30GWqp9F9Ipl3IHUw_7OrvhM4jFBh_uwNg34BE-VBKQThnvK7ySgdhd8yRbVvqW40"
+  },
+  {
+   "id": "jew-5",
+   "title": "طوق درباری فیروزه‌کوب با حاشیه قلم‌زنی",
+   "desc": "شاهکاری بی‌همتا از چیدمان سنگ‌های فیروزه مرغوب در کنار نوارهای باریک نقره با قفل لولایی سنتی و شناسنامه دوزبانه بین‌المللی.",
+   "specs": "نقره ۹۲۵ دست‌ساز • فیروزه نیشابور",
+   "price": "۳۴,۶۰۰,۰۰۰",
+   "priceNum": "34600000",
+   "tag": "فیروزه‌کوبی اعلا",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAqS5vs9s5pkKrQvi-VXe3LIsx9hp19hRoRdrFMe6uAZKdjjOxv0KE3cxb2eNuDB6p4KYjtrpjzrnhXNEtePHdDpq5rijX_lSIfKQOY0s8LS75He07upzkCoyFLTElOa0ahtAY22Xu9lP9WlGydSzP6XUrDzpS33Ump-5nrKNOf8p8x-Ljbzzx9zRGdgCiV-231htgh0orw7J9NiSxRMeZIchwNTfoiOweu7rZrEuSG"
+  },
+  {
+   "id": "jew-6",
+   "title": "انگشتر زمرد سبز پنجشیر رکاب چهارچنگ صفوی",
+   "desc": "گوهر زمرد معدنی با خلوص بالا و تلالو بلورین، سوار بر رکاب ضخیم ریخته‌گری موم گمشده و مخراج‌کاری بسیار دقیق سنگ‌های جانبی.",
+   "specs": "نقره ۹۲۵ • زمرد ۲.۱ قیراط پنجشیر",
+   "price": "۱۹,۳۰۰,۰۰۰",
+   "priceNum": "19300000",
+   "tag": "زمرد اصل پنجشیر",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuDpf9ztchk6KRU0GnIjgEI6dPcJpFdYquGNoSgFhwzcs_ByIDIEOGSn9ZcF4ajp-5ogZYAnUdSYdhEwjoRfpNOTClkXAj9QRjCTJYMhRak3QdBWG9lWd7BV9xCMuJidK6yJ_y8zQxPNO3v0VkfymWCxWlfkOJ-9Iirzn4OzPp0AHPnuOR5E20pmnOMC-DhU8W-mVWaSNl6n8sKgsLj2zkZgdDDC7a0QYYBs4m1E9DAq"
+  }
+ ],
+ "artworks": [
+  {
+   "id": "cal-1",
+   "title": "نگارگری شکارگاه و بزم خسرو و شیرین",
+   "desc": "اجرا بر روی کاغذ آهارمهره صفوی، طلای ۲۴ عیار حل‌شده و لاجورد ناب، با حاشیه تشعیر شکاری فاخر.",
+   "author": "استاد محمود فرشچیان",
+   "specs": "ابعاد: ۵۰ × ۷۰ سانتی‌متر • مکتب اصفهان",
+   "price": "۱۶۵,۰۰۰,۰۰۰",
+   "priceNum": "165000000",
+   "tag": "نگارگری زرین",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuC7BwaRUDy46B1x2Y3t-0AEkM_mT6QjQxMbGnoat2JT6ByyfO2TKvzhrlamNrLVMt3D2VrrgCJYAj6RR7ZeHq8Cip_N8Ve-Z4V8Td04p_FidqO7CiJJYlOc82C_5zLajH4u37bHg9oVnCXk2aj8Q5OJtupla68YkMjoUYT1KcGFTajGNyFXVEBiCWs6meI9b7TzYhzHm9w6NajwsiMuoqqDHtIqpnpE1nLDmwU6SPpe"
+  },
+  {
+   "id": "cal-2",
+   "title": "قطعه نفیس خط نستعلیق چلیپا",
+   "desc": "بیت غزل حافظ با مرکب سنتی دوده سنندج، تذهیب طلاکاری‌شده، پاسپارتو ابروباد دست‌ساز با شیشه آنتی‌رفلکس.",
+   "author": "استاد غلامحسین امیرخانی",
+   "specs": "ابعاد: ۳۵ × ۵۰ سانتی‌متر • ابروباد قاجاری",
+   "price": "۹۸,۰۰۰,۰۰۰",
+   "priceNum": "98000000",
+   "tag": "نستعلیق چلیپا",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBqxIGEf_E7eSYRXn8DRbW7lTd7skFGzdVFAC05VIeD_J6NuUqZc19YwdR5s3kCrCcDGos8g0FbJCHJvVYvlnlU9neknqUGWOSEv7_xELqTXZq3gCfVyceij2v878v02Zbsyj2w5St7D0wOR5PDa7Wn20epyiUPswanQ2FdVtFO2rp-owY23J5Dom-ShYvRTX8vDPLml6d1QiMylZq6DSugM1iY71kH2cIsXAs6nB4w"
+  },
+  {
+   "id": "cal-3",
+   "title": "تابلو تذهیب شمسه خورشیدی زرین",
+   "desc": "طراحی شمسه مرکزی با نقوش اسلیمی و ختایی، طلای حل‌شده مات و براق، حاشیه قلم‌گیری مویی بی‌نظیر.",
+   "author": "بانو پروانه مذهب‌باشی",
+   "specs": "ابعاد: ۶۰ × ۶۰ سانتی‌متر • قاب خاتم",
+   "price": "۱۲۴,۰۰۰,۰۰۰",
+   "priceNum": "124000000",
+   "tag": "طلای ۲۴ عیار اصل",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuAKkn0W6ZG68pqxYoe5ZjGLEJtwuqFll_j3zwtp0fy709ZJf9kWpFQRsyxzidr6NKd0j3zmfuRYzF3MQgY8Y22F4prWNJ8huZpV4xfRe-QDQ01zliob7XQfS-FvfiPHVD3Qycjp8c-50Wo9gIpFEMaTfX8-1RezY3sR-lAmv7y5MbBB1nwZePexNzgXk4Kbj41nKPl2eswXjcWIYz7-dmukZFja5naMi34F1OM2xR04"
+  },
+  {
+   "id": "cal-4",
+   "title": "تابلو گل و مرغ قاجاری روی بوم کهن",
+   "desc": "گل‌های سرخ صدپر و بلبلان نغمه‌خوان با پیگمنت‌های معدنی روناس و نیل، بافت بوم دست‌ساز کتان.",
+   "author": "کارگاه رضایی شیرازی",
+   "specs": "ابعاد: ۴۰ × ۶۰ سانتی‌متر • روغن کمان",
+   "price": "۴۵,۰۰۰,۰۰۰",
+   "priceNum": "45000000",
+   "tag": "گل و مرغ لاکی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBx0Ld43Pc61m8_qVy-GAcC_EURSbdlhQ8TekBmaqkeHvI35fg_RqKGgra2-djt8ew6r98vBmxllhc9Egbfu9_FSCTYQus9RI0pNMSEtjRz1zKhykYYhu3N1Yj5Bd5T9z7aK8z8X1it-IoN2S29ZpcKrrtnhXNJgENj20-JHBYsVHHDhudjyutQmcDwBEn-htOdGOcaG0bO96-66Vvw84gVVeyBm_CrmCESnJm275IO"
+  },
+  {
+   "id": "cal-5",
+   "title": "مرقع مناجات‌نامه خواجه عبدالله انصاری",
+   "desc": "تلفیق خط کتیبه و غبار با رقص سماع حروف، افشان‌گری ذرات طلای ۲۴ عیار در متن کاغذ دست‌ساز.",
+   "author": "استاد یدالله کابلی",
+   "specs": "ابعاد: ۴۵ × ۶۵ سانتی‌متر • زرافشان سنتی",
+   "price": "۷۲,۰۰۰,۰۰۰",
+   "priceNum": "72000000",
+   "tag": "خط شکسته نستعلیق",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuD0p82Tan5dSmH5ZSDRvQyGBNtQWSnLoZpxN9GKKmCTv8hX-z47yUvp61VkGpcVeKk9p-14I9UFgSBIUuKQAeNG-xxUQLVCMbHfLu_Bdym8fZ8oq3TLey1_uC2HYNbaasH-dKjuzcqvCHAzHAZeX78numO5lZ4aplswaxiTVBI3D4BdW_e3iCV_ICmXSgJubDqHFDJQkUmHuRvgIIueBqVXib8kmNCcCTxalSl5LTgd"
+  },
+  {
+   "id": "cal-6",
+   "title": "قاب ارسی و گره‌چینی خورشیدی کاشان",
+   "desc": "اتصالات کام و زبانه بدون استفاده از میخ و چسب صنعتی، بازتاب رنگین نور در فضای معماری مجلل ایرانی.",
+   "author": "استاد سیاوش کاشانی",
+   "specs": "ابعاد: ۸۰ × ۱۲۰ سانتی‌متر • چوب چنار",
+   "price": "۱۱۰,۰۰۰,۰۰۰",
+   "priceNum": "110000000",
+   "tag": "گره‌چینی و ارسی",
+   "img": "https://lh3.googleusercontent.com/aida-public/AB6AXuBQ_nqQTHhZ94x5-BDNfFySN6noixikGADj7glBOE3GRsEfY_cymF2QQu5AgyZ6zoViNzfEp1-VDSAyMuno_IPmw0Lja067Sg1VGR2kcw95jB8cA8lqV1a0lO7Qdp99s3bxsCfs6Xr6O908jC_CcqqTEjTNu7b7bAH8XaZjHjfI_9eDqWTKHX0Ki3tKBxv9n_823nJ6kV69hJVy8T11Y8wloVGbnWkzEocIT3FwWx-W"
+  }
+ ]
+}
