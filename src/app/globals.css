@@ -1,0 +1,444 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-vazirmatn);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+ * RISHEH DESIGN SYSTEM — "Persian Luxury Heritage"
+ * Material-3 tonal palette extracted verbatim from the original
+ * pages (about.html, product-details.html, ...) and docs/stitch specs.
+ */
+@theme {
+  /* M3 core */
+  --color-primary: #002624;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #0f3d3a;
+  --color-on-primary-container: #7ca8a3;
+  --color-secondary: #186969;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #a4ecec;
+  --color-on-secondary-container: #1f6d6d;
+  --color-tertiary: #301d00;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #4c3100;
+  --color-on-tertiary-container: #cd953d;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  /* Surfaces */
+  --color-background: #fff8f0;
+  --color-foreground: #1e1b14;
+  --color-surface: #fff8f0;
+  --color-surface-dim: #e1d9cd;
+  --color-surface-bright: #fff8f0;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fbf3e6;
+  --color-surface-container: #f5ede0;
+  --color-surface-container-high: #efe7da;
+  --color-surface-container-highest: #e9e2d5;
+  --color-on-surface: #1e1b14;
+  --color-on-surface-variant: #404847;
+  --color-outline: #717977;
+  --color-outline-variant: #c0c8c6;
+  --color-inverse-surface: #343028;
+  --color-inverse-on-surface: #f8f0e3;
+  --color-inverse-primary: #a3cfca;
+  --color-surface-tint: #3b6662;
+  --color-surface-variant: #e9e2d5;
+  /* M3 fixed colors */
+  --color-primary-fixed: #beebe6;
+  --color-primary-fixed-dim: #a3cfca;
+  --color-on-primary-fixed: #00201e;
+  --color-on-primary-fixed-variant: #234e4a;
+  --color-secondary-fixed: #a7efef;
+  --color-secondary-fixed-dim: #8bd3d2;
+  --color-on-secondary-fixed: #002020;
+  --color-on-secondary-fixed-variant: #004f50;
+  --color-tertiary-fixed: #ffddb1;
+  --color-tertiary-fixed-dim: #f8bc5f;
+  --color-on-tertiary-fixed: #291800;
+  --color-on-tertiary-fixed-variant: #624000;
+  /* Home page brand palette (index.html) */
+  --color-brand-teal: #0e3b36;
+  --color-brand-darkTeal: #092b27;
+  --color-brand-gold: #d89e3d;
+  --color-brand-lightGold: #e7b863;
+  --color-brand-paleBg: #fdf6ed;
+  --color-brand-cardBg: #fffdf9;
+  --color-brand-darkText: #2b2118;
+  --color-brand-muted: #7a6b5d;
+  --color-brand-borderTone: #ebddc9;
+  /* Semantic accents */
+  --color-saffron: #f2a93b;
+  --color-pomegranate: #e5362b;
+  /* Spacing scale (from source tailwind config) */
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2.5rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-gutter-mobile: 1rem;
+  --spacing-margin: 3rem;
+  --spacing-margin-mobile: 1.25rem;
+  /* Typography scale (Vazirmatn — from docs/stitch design specs) */
+  --text-headline-xl: 44px;
+  --text-headline-xl--line-height: 60px;
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 46px;
+  --text-headline-md: 22px;
+  --text-headline-md--line-height: 34px;
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 28px;
+  --text-body-lg: 17px;
+  --text-body-lg--line-height: 30px;
+  --text-body-md: 15px;
+  --text-body-md--line-height: 26px;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 22px;
+  --text-label-lg: 15px;
+  --text-label-lg--line-height: 24px;
+  --text-label-md: 13px;
+  --text-label-md--line-height: 20px;
+  --text-label-sm: 11px;
+  --text-label-sm--line-height: 16px;
+  /* Font family tokens (weight applied separately, same Vazirmatn family) */
+  --font-headline-xl: "Vazirmatn", Tahoma, sans-serif;
+  --font-headline-sm: "Vazirmatn", Tahoma, sans-serif;
+  --font-headline-md: "Vazirmatn", Tahoma, sans-serif;
+  --font-headline-lg: "Vazirmatn", Tahoma, sans-serif;
+  --font-label-md: "Vazirmatn", Tahoma, sans-serif;
+  --font-label-lg: "Vazirmatn", Tahoma, sans-serif;
+  --font-label-sm: "Vazirmatn", Tahoma, sans-serif;
+  --font-body-md: "Vazirmatn", Tahoma, sans-serif;
+  --font-body-lg: "Vazirmatn", Tahoma, sans-serif;
+  --font-body-sm: "Vazirmatn", Tahoma, sans-serif;
+}
+
+:root {
+  --radius: 0.75rem;
+  /* shadcn semantic vars mapped onto the Risheh M3 palette */
+  --background: #fff8f0;
+  --foreground: #1e1b14;
+  --card: #fff8f0;
+  --card-foreground: #1e1b14;
+  --popover: #ffffff;
+  --popover-foreground: #1e1b14;
+  --primary: #002624;
+  --primary-foreground: #ffffff;
+  --secondary: #186969;
+  --secondary-foreground: #ffffff;
+  --muted: #f5ede0;
+  --muted-foreground: #404847;
+  --accent: #efe7da;
+  --accent-foreground: #002624;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --border: #c0c8c6;
+  --input: #c0c8c6;
+  --ring: #186969;
+  --chart-1: #186969;
+  --chart-2: #cd953d;
+  --chart-3: #0f3d3a;
+  --chart-4: #f8bc5f;
+  --chart-5: #3b6662;
+  --sidebar: #fbf3e6;
+  --sidebar-foreground: #1e1b14;
+  --sidebar-primary: #0f3d3a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efe7da;
+  --sidebar-accent-foreground: #002624;
+  --sidebar-border: #c0c8c6;
+  --sidebar-ring: #186969;
+}
+
+
+/* ---------------- Responsive design tokens ----------------
+ * Fluid-ish scale: the typography and gutter tokens above are the desktop values;
+ * they shrink on tablets/phones so every `text-headline-*`, `px-gutter` etc. utility
+ * adapts everywhere without touching each view.
+ */
+@media (max-width: 1023px) {
+  :root {
+    --text-headline-xl: 36px;
+    --text-headline-xl--line-height: 52px;
+    --text-headline-lg: 28px;
+    --text-headline-lg--line-height: 42px;
+    --spacing-space-xl: 2rem;
+  }
+}
+@media (max-width: 639px) {
+  :root {
+    --text-headline-xl: 28px;
+    --text-headline-xl--line-height: 42px;
+    --text-headline-lg: 23px;
+    --text-headline-lg--line-height: 36px;
+    --text-headline-md: 19px;
+    --text-headline-md--line-height: 30px;
+    --text-headline-sm: 16px;
+    --text-headline-sm--line-height: 26px;
+    --text-body-lg: 16px;
+    --text-body-lg--line-height: 28px;
+    --spacing-gutter: 1rem;
+    --spacing-space-lg: 1.25rem;
+    --spacing-space-xl: 1.75rem;
+    --spacing-margin: 1.25rem;
+  }
+}
+
+/* ---------------- Fonts (local, self-hosted) ---------------- */
+@font-face {
+  font-family: "Vazirmatn";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/assets/fonts/b37f9008d6c9.woff2") format("woff2");
+  unicode-range: U+0600-06FF, U+0750-077F, U+200C-200E, U+2010-2011, U+FB50-FDFF, U+FE70-FEFC;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/assets/fonts/d10c3cc1fc6f.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+2000-206F, U+20AC, U+2122;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/assets/fonts/f50a38034db2.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+2122;
+}
+@font-face {
+  font-family: "Material Symbols Outlined Extra";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("data:font/woff2;base64,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") format("woff2");
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    direction: rtl;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Vazirmatn", Tahoma, sans-serif;
+    direction: rtl;
+    overscroll-behavior: none;
+    overflow-x: hidden;
+  }
+  img, video, svg {
+    max-width: 100%;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  button, [role="button"], a, input, select, textarea {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  /* iOS zooms into inputs below 16px; keep fields at 16px on phones */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+      font-size: 16px;
+    }
+  }
+  /* Keep long Persian titles/URLs from forcing horizontal scroll */
+  h1, h2, h3, h4, p, li, td, th {
+    overflow-wrap: anywhere;
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* ---------------- Material Symbols (ligature icons, as in source) ---------------- */
+@font-face {
+  font-family: "Material Symbols Subset";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("/assets/fonts/material-symbols-subset.woff2") format("woff2");
+}
+/* Full font: only downloaded if a glyph is missing from the subset above. */
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("/assets/fonts/material-symbols-outlined.woff2") format("woff2");
+}
+.material-symbols-outlined {
+  font-family: "Material Symbols Subset", "Material Symbols Outlined", "Material Symbols Outlined Extra";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+  user-select: none;
+}
+.material-symbols-outlined.filled {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* ---------------- Ornamental & craft utilities (verbatim from source) ---------------- */
+.ornament-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.ornament-line::before,
+.ornament-line::after {
+  content: "";
+  height: 1.5px;
+  width: 70px;
+  background: linear-gradient(90deg, transparent, #d89e3d, transparent);
+}
+.ornament-diamond {
+  width: 7px;
+  height: 7px;
+  background-color: #d89e3d;
+  transform: rotate(45deg);
+}
+.persian-pattern-bg {
+  background-color: #fdf7ee;
+  background-image: radial-gradient(#e8d9c2 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+.persian-pattern-subtle {
+  background-color: #fff8f0;
+  background-image:
+    radial-gradient(#efe7da 0.75px, transparent 0.75px),
+    radial-gradient(#efe7da 0.75px, #fff8f0 0.75px);
+  background-size: 30px 30px;
+  background-position:
+    0 0,
+    15px 15px;
+}
+.craft-shadow {
+  box-shadow: 0 4px 20px -2px rgba(92, 65, 38, 0.08);
+  transition: all 0.25s ease-in-out;
+}
+.craft-shadow:hover {
+  box-shadow: 0 10px 25px -4px rgba(92, 65, 38, 0.16);
+  transform: translateY(-3px);
+}
+.persian-gold-gradient {
+  background: linear-gradient(135deg, #e0a94a 0%, #c38b29 100%);
+}
+/* Warm ambient elevations (from docs/stitch design spec) */
+.elevation-1 {
+  box-shadow:
+    0 4px 20px -2px rgba(43, 33, 24, 0.05),
+    0 2px 6px -1px rgba(15, 61, 58, 0.03);
+}
+.elevation-2 {
+  box-shadow:
+    0 12px 32px -4px rgba(43, 33, 24, 0.08),
+    0 4px 12px -2px rgba(201, 146, 58, 0.08);
+}
+.elevation-3 {
+  box-shadow:
+    0 24px 48px -8px rgba(15, 61, 58, 0.18),
+    0 8px 16px -4px rgba(43, 33, 24, 0.06);
+}
+/* Persian arch mask (Khosravani vault) for selected imagery */
+.persian-arch {
+  border-top-left-radius: 999px;
+  border-top-right-radius: 999px;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+/* Persian numerals inside tables/prices */
+.num-fa {
+  font-feature-settings: "ss01";
+}
+
+/* Splash screen logo breathing (see SplashScreen.tsx) */
+@keyframes splash-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.92; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------- Installed-app (PWA) polish ---------------- */
+@media (display-mode: standalone) {
+  html {
+    background: #fbf5eb;
+  }
+}
