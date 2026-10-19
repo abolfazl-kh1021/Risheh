@@ -3,7 +3,7 @@
 Read `docs/PROJECT_BRIEF.md` for the full brief. This file is the short version.
 
 ## Stack
-Next.js (App Router) + TypeScript + Tailwind CSS + PostgreSQL + Prisma
+Next.js App Router, TypeScript, Tailwind 4, shadcn/ui, PostgreSQL, Prisma, next-intl (URL-based /fa and /en), next-themes, Auth.js, Zod
 
 ## Working Rules
 - Work ONLY on the step I request, then stop and wait.
@@ -15,6 +15,7 @@ Next.js (App Router) + TypeScript + Tailwind CSS + PostgreSQL + Prisma
 - AI features and payments must have a clearly labeled demo mode.
   Never present fabricated output as real AI analysis or a real payment.
 - Use properly licensed placeholder images (Unsplash/Pexels), relevant to each product.
+- `_reference/R2` is a visual reference only. Never copy its backend, auth, i18n runtime, AI layer, seed data or image URLs.
 
 ## Product
 Bilingual marketplace (Persian RTL / English LTR) for artworks and

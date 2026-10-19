@@ -2,7 +2,7 @@
 
 Documentation for the bilingual art & handicraft marketplace.
 
-**Stack:** Next.js (App Router) + TypeScript + Tailwind CSS + PostgreSQL + Prisma
+**Stack:** Next.js App Router, TypeScript, Tailwind 4, shadcn/ui, PostgreSQL, Prisma, next-intl (URL-based /fa and /en), next-themes, Auth.js, Zod
 **Roles:** customer / artist / admin
 **Locales:** Persian (`fa`, RTL) and English (`en`, LTR)
 
@@ -528,7 +528,16 @@ Client components never call external AI APIs directly; they call Next.js API ro
 
 ---
 
-## 13. Open Questions
+## 13. Design Reference
+
+`_reference/R2` is a visual reference only (color tokens, typography, motifs).
+Never copy its backend, auth, i18n runtime, AI layer, seed data or image URLs.
+Canonical UI mockups live in `docs/design/` (`01–56` plus `dark/`, `english/`, `mobile/` variants);
+token values are transcribed in `docs/design/design-system.md`.
+
+---
+
+## 14. Open Questions
 
 The following items need your decision before implementation:
 
