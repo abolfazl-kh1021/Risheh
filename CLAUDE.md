@@ -33,3 +33,10 @@ handcrafted products, with light and dark themes.
 - All text in translation files, never hardcoded
 - Accessible (keyboard, alt text, contrast), responsive, SEO metadata
 - Respect prefers-reduced-motion
+
+## Engineering Rules
+- Security and data integrity come before speed.
+- Never trust the client: validate on the server, calculate prices on the server.
+- Do not over-engineer. Every technology added must have a clear reason.
+- The project must be understandable and defensible in a technical interview.
+- Document assumptions and important decisions.
