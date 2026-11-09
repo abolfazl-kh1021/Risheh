@@ -7,6 +7,10 @@ import type {
   BlogPostDTO,
   CartItemDTO,
   CategoryDTO,
+  DiscountArtworkDTO,
+  DiscountCampaignDTO,
+  DiscountCodeDTO,
+  DiscountRedemptionDTO,
   OrderDTO,
   PlanDTO,
 } from "@/lib/types";
@@ -242,6 +246,10 @@ export async function loadAppData(): Promise<AppData> {
     cart,
   };
 
+  // Discount campaigns & codes are public storefront content; the per-user
+  // claim state is filled when a session exists (never cached).
+  data.discounts = await loadStorefrontDiscounts(user?.id ?? null);
+
   if (user) {
     // Buyer orders + favorites in parallel (no waterfall)
     const [orders, favs] = await Promise.all([
@@ -414,6 +422,7 @@ export async function loadAppData(): Promise<AppData> {
         pendingArtworks,
         messages: messages.filter((m) => !m.handled).length,
       },
+      discounts: await loadAdminDiscounts(),
     };
   }
 
@@ -423,4 +432,162 @@ export async function loadAppData(): Promise<AppData> {
 /** Invalidate the cached public catalog after catalog-affecting writes. */
 export function invalidatePublicCatalog(): void {
   invalidateCache(PUBLIC_CATALOG_KEY);
+}
+
+// ---------------- Discounts ----------------
+
+type CampaignWithRelations = Prisma.DiscountCampaignGetPayload<{
+  include: {
+    codes: true;
+    artworks: { include: { artwork: { include: { seller: true } } } };
+  };
+}>;
+
+function mapCampaignArtwork(
+  link: { artwork: Prisma.ArtworkGetPayload<{ include: { seller: true } }> },
+  opts: { publishedOnly: boolean }
+): DiscountArtworkDTO | null {
+  // Only published artworks are shown on the storefront side of campaigns.
+  if (opts.publishedOnly && link.artwork.status !== "PUBLISHED") return null;
+  return {
+    artworkId: link.artwork.id,
+    code: link.artwork.code,
+    slug: link.artwork.slug,
+    title: link.artwork.title,
+    image: (JSON.parse(link.artwork.images || "[]") as string[])[0] ?? "",
+    price: link.artwork.price,
+    artisanName: link.artwork.seller.name,
+    shopTitle: link.artwork.seller.shopTitle,
+  };
+}
+
+function mapCampaign(
+  c: CampaignWithRelations,
+  opts: { publishedOnly: boolean }
+): DiscountCampaignDTO {
+  const artworks = c.artworks
+    .map((l) => mapCampaignArtwork(l, { publishedOnly: opts.publishedOnly }))
+    .filter((a): a is DiscountArtworkDTO => a !== null);
+  return {
+    id: c.id,
+    title: c.title,
+    occasion: c.occasion,
+    description: c.description,
+    startsAt: c.startsAt.toISOString(),
+    endsAt: c.endsAt.toISOString(),
+    active: c.active,
+    createdAt: c.createdAt.toISOString(),
+    artworks,
+    codeCount: c.codes.length,
+  };
+}
+
+export function mapDiscountCode(
+  c: Prisma.DiscountCodeGetPayload<{ include: { campaign: true } }>
+): DiscountCodeDTO {
+  return {
+    id: c.id,
+    campaignId: c.campaignId,
+    campaignTitle: c.campaign?.title ?? null,
+    code: c.code,
+    title: c.title,
+    description: c.description,
+    kind: c.kind as DiscountCodeDTO["kind"],
+    amount: c.amount,
+    maxPrice: c.maxPrice,
+    minPrice: c.minPrice,
+    audience: c.audience as DiscountCodeDTO["audience"],
+    maxUses: c.maxUses,
+    usedCount: c.usedCount,
+    perUserLimit: c.perUserLimit,
+    startsAt: c.startsAt?.toISOString() ?? null,
+    expiresAt: c.expiresAt?.toISOString() ?? null,
+    active: c.active,
+    createdAt: c.createdAt.toISOString(),
+  };
+}
+
+/** Storefront discounts: active campaigns + active codes (+ per-user claim state). */
+async function loadStorefrontDiscounts(userId: string | null): Promise<
+  NonNullable<AppData["discounts"]>
+> {
+  const now = new Date();
+  const [campaignsRaw, codesRaw, myRedemptions] = await Promise.all([
+    db.discountCampaign.findMany({
+      where: { active: true, endsAt: { gte: now } },
+      include: {
+        codes: { where: { active: true } },
+        artworks: { include: { artwork: { include: { seller: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.discountCode.findMany({
+      where: { active: true, OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+      include: { campaign: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    userId
+      ? db.discountRedemption.findMany({ where: { userId }, select: { codeId: true } })
+      : Promise.resolve([] as Array<{ codeId: string }>),
+  ]);
+
+  const myCounts = new Map<string, number>();
+  for (const r of myRedemptions) myCounts.set(r.codeId, (myCounts.get(r.codeId) ?? 0) + 1);
+
+  const campaigns = campaignsRaw.map((c) => mapCampaign(c, { publishedOnly: true }));
+  const codes = codesRaw.map((c) => ({
+    ...mapDiscountCode(c),
+    remaining: Math.max(0, c.maxUses - c.usedCount),
+    claimedByMe: (myCounts.get(c.id) ?? 0) > 0,
+    myUses: myCounts.get(c.id) ?? 0,
+  }));
+
+  return { campaigns, codes };
+}
+
+/** Full management view for the admin panel. */
+async function loadAdminDiscounts(): Promise<NonNullable<AppData["admin"]>["discounts"]> {
+  const now = new Date();
+  const [campaignsRaw, codesRaw, redemptionsRaw, redemptionCount] = await Promise.all([
+    db.discountCampaign.findMany({
+      include: {
+        codes: true,
+        artworks: { include: { artwork: { include: { seller: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.discountCode.findMany({ include: { campaign: true }, orderBy: { createdAt: "desc" } }),
+    db.discountRedemption.findMany({
+      include: { user: true, code: true },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+    db.discountRedemption.count(),
+  ]);
+
+  const redemptions: DiscountRedemptionDTO[] = redemptionsRaw.map((r) => ({
+    id: r.id,
+    code: r.code.code,
+    codeTitle: r.code.title,
+    userName: r.user.name,
+    userEmail: r.user.email,
+    status: r.status,
+    createdAt: r.createdAt.toISOString(),
+  }));
+
+  return {
+    campaigns: campaignsRaw.map((c) => mapCampaign(c, { publishedOnly: false })),
+    codes: codesRaw.map((c) => ({
+      ...mapDiscountCode(c),
+      remaining: Math.max(0, c.maxUses - c.usedCount),
+    })),
+    redemptions,
+    stats: {
+      campaigns: campaignsRaw.length,
+      activeCampaigns: campaignsRaw.filter((c) => c.active && c.endsAt >= now).length,
+      codes: codesRaw.length,
+      activeCodes: codesRaw.filter((c) => c.active).length,
+      redemptions: redemptionCount,
+    },
+  };
 }
