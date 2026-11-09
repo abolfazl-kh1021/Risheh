@@ -87,3 +87,25 @@ export const SETTLEMENT_STATUS_FA: Record<string, string> = {
   PAID: "واریز شده",
   REJECTED: "رد شده",
 };
+
+export const DISCOUNT_AUDIENCE_FA: Record<string, string> = {
+  ALL: "همه کاربران",
+  BUYER: "ویژه مشتریان",
+  ARTISAN: "ویژه استادکاران",
+};
+
+export const DISCOUNT_STATUS_FA: Record<string, string> = {
+  VALID: "معتبر و قابل استفاده",
+  NOT_FOUND: "کد یافت نشد",
+  INACTIVE: "کد غیرفعال است",
+  NOT_STARTED: "کد هنوز فعال نشده است",
+  EXPIRED: "مهلت کد به پایان رسیده است",
+  EXHAUSTED: "ظرفیت کد تکمیل شده است",
+  USER_LIMIT: "سهمیه شما از این کد تمام شده است",
+  AUDIENCE_MISMATCH: "این کد برای نقش حساب شما در نظر گرفته نشده است",
+};
+
+/** Persian wording for a discount value («۱۵٪ تخفیف» / «۳۰۰٬۰۰۰ تومان تخفیف») */
+export function discountValueFa(kind: string, amount: number): string {
+  return kind === "PERCENT" ? `${faNum(amount)}٪ تخفیف` : `${faPrice(amount)} تومان تخفیف`;
+}
