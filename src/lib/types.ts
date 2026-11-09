@@ -226,12 +226,105 @@ export type ContactMessageDTO = {
   createdAt: string;
 };
 
+// ---------- Discounts ----------
+
+export type DiscountAudience = "ALL" | "BUYER" | "ARTISAN";
+
+export type DiscountKind = "PERCENT" | "FIXED";
+
+export type DiscountArtworkDTO = {
+  artworkId: string;
+  code: string;
+  slug: string;
+  title: string;
+  image: string;
+  price: number;
+  artisanName: string;
+  shopTitle?: string | null;
+};
+
+export type DiscountCampaignDTO = {
+  id: string;
+  title: string;
+  occasion: string;
+  description?: string | null;
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+  createdAt: string;
+  artworks: DiscountArtworkDTO[];
+  codeCount: number;
+};
+
+export type DiscountCodeDTO = {
+  id: string;
+  campaignId?: string | null;
+  campaignTitle?: string | null;
+  code: string;
+  title: string;
+  description?: string | null;
+  kind: DiscountKind;
+  amount: number;
+  maxPrice?: number | null;
+  minPrice?: number | null;
+  audience: DiscountAudience;
+  maxUses: number;
+  usedCount: number;
+  perUserLimit: number;
+  startsAt?: string | null;
+  expiresAt?: string | null;
+  active: boolean;
+  createdAt: string;
+  /** Public sidecar fields (filled for the storefront view) */
+  remaining?: number;
+  claimedByMe?: boolean;
+  myUses?: number;
+};
+
+export type DiscountRedemptionDTO = {
+  id: string;
+  code: string;
+  codeTitle: string;
+  userName: string;
+  userEmail: string;
+  status: string;
+  createdAt: string;
+};
+
+export type DiscountStatus =
+  | "VALID"
+  | "NOT_FOUND"
+  | "INACTIVE"
+  | "NOT_STARTED"
+  | "EXPIRED"
+  | "EXHAUSTED"
+  | "USER_LIMIT"
+  | "AUDIENCE_MISMATCH";
+
+export type AdminDiscountsDTO = {
+  campaigns: DiscountCampaignDTO[];
+  codes: DiscountCodeDTO[];
+  redemptions: DiscountRedemptionDTO[];
+  stats: {
+    campaigns: number;
+    activeCampaigns: number;
+    codes: number;
+    activeCodes: number;
+    redemptions: number;
+  };
+};
+
 export type AppData = {
   user: SessionUserDTO;
   categories: CategoryDTO[];
   artworks: ArtworkDTO[];
   posts: BlogPostDTO[];
   cart: CartItemDTO[];
+  // Discounts (public storefront view — active campaigns & codes)
+  discounts?: {
+    campaigns: DiscountCampaignDTO[];
+    codes: DiscountCodeDTO[];
+  };
   // Buyer
   myOrders?: OrderDTO[];
   favorites?: string[];
@@ -276,5 +369,6 @@ export type AppData = {
       createdAt: string;
       sellerName: string;
     }>;
+    discounts: AdminDiscountsDTO;
   };
 };
