@@ -35,6 +35,7 @@ model User {
   memberRequest MemberRequest?
   labRequests   LabRequest[]
   sessions      Session[]
+  discountRedemptions DiscountRedemption[]
 
   @@map("users")
 }
@@ -100,6 +101,7 @@ model Artwork {
   favorites       Favorite[]
   reviews         Review[]
   labRequests     LabRequest[]
+  discountLinks   DiscountArtwork[]
 
   @@index([sellerId])
   @@index([categoryId])
@@ -379,4 +381,85 @@ model AuditLog {
 
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============ Discounts & occasion campaigns ============
+
+/**
+ * A curated occasion campaign (یلدا، نوروز، هفته میراث…) — the admin
+ * (optionally with participating artisans) pins artworks to it.
+ */
+model DiscountCampaign {
+  id          String   @id @default(cuid())
+  title       String
+  occasion    String // نوروز | یلدا | هفته میراث …
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  codes    DiscountCode[]
+  artworks DiscountArtwork[]
+
+  @@map("discount_campaigns")
+}
+
+/**
+ * A discount code — percent or fixed Toman, with caps, audience scope and
+ * usage limits. Codes may belong to a campaign (occasion) or stand alone.
+ */
+model DiscountCode {
+  id           String    @id @default(cuid())
+  campaignId   String?
+  campaign     DiscountCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  code         String    @unique // e.g. YALDA-1405
+  title        String
+  description  String?
+  kind         String    @default("PERCENT") // PERCENT | FIXED
+  amount       Int // percent (1-100) or Toman for FIXED
+  maxPrice     Int? // cap on the discount amount (Toman) for PERCENT
+  minPrice     Int? // minimum cart total to apply (Toman)
+  audience     String    @default("ALL") // ALL | BUYER | ARTISAN
+  maxUses      Int       @default(100)
+  usedCount    Int       @default(0)
+  perUserLimit Int       @default(1)
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  redemptions DiscountRedemption[]
+
+  @@index([campaignId])
+  @@map("discount_codes")
+}
+
+/** One row per code claim/use by a user (perUserLimit rows max per user). */
+model DiscountRedemption {
+  id        String       @id @default(cuid())
+  codeId    String
+  code      DiscountCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String       @default("CLAIMED") // CLAIMED | APPLIED
+  createdAt DateTime     @default(now())
+
+  @@index([codeId, userId])
+  @@index([userId])
+  @@map("discount_redemptions")
+}
+
+/** Join table: artworks pinned to an occasion campaign. */
+model DiscountArtwork {
+  id         String           @id @default(cuid())
+  campaignId String
+  campaign   DiscountCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  artworkId  String
+  artwork    Artwork          @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+
+  @@unique([campaignId, artworkId])
+  @@index([artworkId])
+  @@map("discount_artworks")
 }
