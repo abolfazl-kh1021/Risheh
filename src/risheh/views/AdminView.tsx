@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/admin";
 import type { AppData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AdminDiscountsSection } from "@/risheh/views/AdminDiscountsSection";
 
 type Props = { data: AppData; navigate: (to: string) => void; refresh: () => void };
 
@@ -21,6 +22,7 @@ const SECTIONS = [
   { id: "artisans", label: "مدیریت استادکاران و اعضا", icon: "group" },
   { id: "plans", label: "پلن‌ها و حق عضویت‌ها", icon: "card_membership" },
   { id: "transactions", label: "تراکنش‌ها و درآمدها", icon: "payments" },
+  { id: "discounts", label: "تخفیف‌ها و کدهای هدیه", icon: "sell" },
   { id: "verifications", label: "کارشناسی آثار و آزمایشگاه", icon: "how_to_reg" },
   { id: "support", label: "پشتیبانی و تیکت‌ها", icon: "support_agent" },
   { id: "audit", label: "گزارش رخدادها (Audit Log)", icon: "fact_check" },
@@ -291,6 +293,8 @@ export function AdminView({ data, navigate, refresh }: Props) {
               </p>
             </section>
           )}
+
+          {section === "discounts" && <AdminDiscountsSection data={data} refresh={refresh} />}
 
           {section === "verifications" && (
             <div className="flex flex-col gap-4">
