@@ -53,6 +53,15 @@ export function SiteHeader({
           </div>
           <div className="flex items-center gap-space-sm sm:gap-space-md shrink-0">
             <button
+              onClick={() => onNavigate("discounts")}
+              className="flex items-center gap-1.5 hover:text-tertiary-fixed-dim transition-colors"
+              aria-label="تخفیف‌ها"
+            >
+              <MSymbol name="sell" size={17} />
+              <span className="hidden sm:inline">تخفیف‌ها</span>
+            </button>
+            <span className="text-[#23534d]">✦</span>
+            <button
               onClick={() => onNavigate("favorites")}
               className="flex items-center gap-1.5 hover:text-tertiary-fixed-dim transition-colors"
               aria-label="علاقه‌مندی‌ها"
@@ -123,6 +132,14 @@ export function SiteHeader({
                         onClick={() => {
                           setUserMenu(false);
                           onNavigate("orders");
+                        }}
+                      />
+                      <MenuLink
+                        icon="sell"
+                        label="تخفیف‌ها و کدهای من"
+                        onClick={() => {
+                          setUserMenu(false);
+                          onNavigate("discounts");
                         }}
                       />
                       <MenuLink
@@ -362,6 +379,14 @@ export function SiteHeader({
           </button>
         ))}
         <div className="border-t border-outline-variant/30 my-2" />
+        <DrawerLink
+          icon="sell"
+          label="تخفیف‌ها و کدهای هدیه"
+          onClick={() => {
+            setDrawerOpen(false);
+            onNavigate("discounts");
+          }}
+        />
         <DrawerLink
           icon="favorite_border"
           label="علاقه‌مندی‌ها"
