@@ -65,6 +65,10 @@ const FavoritesView = dynamic(
   () => import("@/risheh/views/FavoritesView").then((m) => m.FavoritesView),
   { loading: () => <ViewFallback /> }
 );
+const DiscountsView = dynamic(
+  () => import("@/risheh/views/DiscountsView").then((m) => m.DiscountsView),
+  { loading: () => <ViewFallback /> }
+);
 
 export function RishehApp({ data: rawData }: { data: AppData }) {
   // Guarantee all eight canonical categories are present (see lib/categories.ts).
@@ -242,6 +246,8 @@ export function RishehApp({ data: rawData }: { data: AppData }) {
         return <AdminView {...shared} />;
       case "favorites":
         return <FavoritesView {...shared} />;
+      case "discounts":
+        return <DiscountsView {...shared} />;
       default:
         return <HomeView {...shared} />;
     }
