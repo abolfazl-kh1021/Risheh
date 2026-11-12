@@ -30,6 +30,10 @@ const DEMO_PASSWORD = "risheh1403";
 
 async function main() {
   console.log("Seeding Risheh demo data…");
+  await db.discountRedemption.deleteMany();
+  await db.discountCode.deleteMany();
+  await db.discountArtwork.deleteMany();
+  await db.discountCampaign.deleteMany();
   await db.auditLog.deleteMany();
   await db.verificationEvent.deleteMany();
   await db.trackingEvent.deleteMany();
@@ -749,6 +753,161 @@ async function main() {
       { actor: "admin@risheh.ir", action: "APPROVE_ARTISAN", target: "استاد رسول معتمدی", detail: "تایید عضویت پلن برنزی" },
       { actor: "admin@risheh.ir", action: "VERIFY_ARTWORK", target: "RSH-9834", detail: "صدور شناسنامه اصالت هولوگرام‌دار" },
       { actor: "system", action: "SETTLE_REQUEST", target: "استاد سهراب سپهری‌راد", detail: "درخواست تسویه ۱٬۸۵۰٬۰۰۰ تومان در صف بررسی" },
+    ],
+  });
+
+  // ---------------- Discount campaigns & codes (demo) ----------------
+  const daysFromNow = (d: number) => new Date(Date.now() + d * 24 * 60 * 60 * 1000);
+
+  const yaldaCampaign = await db.discountCampaign.create({
+    data: {
+      title: "یلدای ریشه ۱۴۰۵",
+      occasion: "شب یلدا",
+      description: "جشن بلندترین شب سال با منتخب دست‌سازه‌های اصیل؛ همراه با کدهای هدیه ویژه.",
+      startsAt: daysFromNow(-7),
+      endsAt: daysFromNow(30),
+      artworks: {
+        create: [
+          { artworkId: heroRug.id },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "home-featured-1" } })).id },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "home-featured-2" } })).id },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "carpet-1" } })).id },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "metal-1" } })).id },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "jewelry-1" } })).id },
+        ],
+      },
+    },
+  });
+
+  const mirasCampaign = await db.discountCampaign.create({
+    data: {
+      title: "هفته میراث فرهنگی",
+      occasion: "هفته میراث فرهنگی",
+      description: "به پاس میراث‌داران هنر ایران؛ آثار برگزیده با همکاری مستقیم کارگاه‌ها.",
+      startsAt: daysFromNow(0),
+      endsAt: daysFromNow(45),
+      artworks: {
+        create: [
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "home-featured-3" } })).id },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "home-featured-4" } })).id },
+          { artworkId: artisanArtworkIds[0] },
+          { artworkId: artisanArtworkIds[3] },
+          { artworkId: (await db.artwork.findFirstOrThrow({ where: { slug: "textile-1" } })).id },
+        ],
+      },
+    },
+  });
+
+  const [
+    yaldaCode,
+    mirasCode,
+    welcomeCode,
+    artisanCode,
+    nowruzExpiredCode,
+    offerDoneCode,
+  ] = await Promise.all([
+    db.discountCode.create({
+      data: {
+        campaignId: yaldaCampaign.id,
+        code: "YALDA-1405",
+        title: "هدیه بلندترین شب سال",
+        description: "۱۵٪ تخفیف روی آثار منتخب یلدا، حداکثر تا سقف ۸۰۰٬۰۰۰ تومان.",
+        kind: "PERCENT",
+        amount: 15,
+        maxPrice: 800000,
+        minPrice: 1500000,
+        audience: "ALL",
+        maxUses: 100,
+        perUserLimit: 1,
+        startsAt: daysFromNow(-7),
+        expiresAt: daysFromNow(30),
+        usedCount: 1,
+      },
+    }),
+    db.discountCode.create({
+      data: {
+        campaignId: mirasCampaign.id,
+        code: "MIRAS-WEEK",
+        title: "هفته میراث فرهنگی",
+        kind: "PERCENT",
+        amount: 10,
+        audience: "ALL",
+        maxUses: 200,
+        perUserLimit: 1,
+        expiresAt: daysFromNow(45),
+        usedCount: 1,
+      },
+    }),
+    db.discountCode.create({
+      data: {
+        code: "WELCOME-GIFT",
+        title: "هدیه خرید اول ریشه",
+        description: "۳۰۰٬۰۰۰ تومان تخفیف نخستین خرید از گنجینه ریشه.",
+        kind: "FIXED",
+        amount: 300000,
+        minPrice: 1500000,
+        audience: "BUYER",
+        maxUses: 500,
+        perUserLimit: 1,
+        expiresAt: daysFromNow(90),
+      },
+    }),
+    db.discountCode.create({
+      data: {
+        code: "ARTISAN-CLUB",
+        title: "کلوپ استادکاران",
+        description: "۲۰٪ تخفیف خرید ویژه اعضای استادکار گنجینه ریشه.",
+        kind: "PERCENT",
+        amount: 20,
+        maxPrice: 2000000,
+        audience: "ARTISAN",
+        maxUses: 50,
+        perUserLimit: 1,
+        expiresAt: daysFromNow(20),
+        usedCount: 1,
+      },
+    }),
+    db.discountCode.create({
+      data: {
+        campaignId: yaldaCampaign.id,
+        code: "NOWRUZ-LAST",
+        title: "پرتلاش نوروزی (منقضی)",
+        kind: "PERCENT",
+        amount: 12,
+        audience: "ALL",
+        maxUses: 100,
+        perUserLimit: 1,
+        expiresAt: daysFromNow(-5),
+        usedCount: 37,
+      },
+    }),
+    db.discountCode.create({
+      data: {
+        code: "OFFER-DONE",
+        title: "پیشنهاد لحظه‌ای (تکمیل ظرفیت)",
+        kind: "PERCENT",
+        amount: 50,
+        audience: "ALL",
+        maxUses: 2,
+        perUserLimit: 1,
+        expiresAt: daysFromNow(10),
+        usedCount: 2,
+      },
+    }),
+  ]);
+  await db.discountRedemption.createMany({
+    data: [
+      { codeId: yaldaCode.id, userId: buyer.id, status: "CLAIMED" },
+      { codeId: artisanCode.id, userId: artisan.id, status: "CLAIMED" },
+      { codeId: mirasCode.id, userId: habibian.id, status: "CLAIMED" },
+      { codeId: offerDoneCode.id, userId: buyer.id, status: "APPLIED" },
+      { codeId: offerDoneCode.id, userId: pendingArtisan.id, status: "APPLIED" },
+    ],
+  });
+  await db.auditLog.createMany({
+    data: [
+      { actor: "admin@risheh.ir", action: "DISCOUNT_CAMPAIGN_CREATE", target: yaldaCampaign.title, detail: "شب یلدا — ۶ اثر منتخب استادکاران" },
+      { actor: "admin@risheh.ir", action: "DISCOUNT_CODE_CREATE", target: "YALDA-1405", detail: "۱۵٪ با سقف ۸۰۰٬۰۰۰ تومان" },
     ],
   });
 
