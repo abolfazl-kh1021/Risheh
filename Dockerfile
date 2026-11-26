@@ -7,18 +7,37 @@
 # DATABASE_URL (docker-compose service or a managed database like Neon).
 # The runner ships bun + the Prisma CLI so the entrypoint can run
 # `prisma migrate deploy` and the demo seed on first boot.
+#
+# FIXES vs. previous version:
+#   1. deps stage now copies prisma/schema.prisma BEFORE `bun install`,
+#      because the root `postinstall` script runs `prisma generate`,
+#      which cannot work without the schema file
+#      ("Error: Could not find Prisma Schema").
+#   2. `openssl` is installed in all three stages. node:22-bookworm-slim
+#      ships no openssl binary, so Prisma cannot detect the libssl version
+#      and falls back to the openssl-1.1.x engine, which cannot load on
+#      Debian 12 (bookworm only has libssl3) → install openssl so Prisma
+#      selects the debian-openssl-3.0.x engine.
 # =============================================================================
 
 # ---------- Stage 1: dependencies ----------
 FROM node:22-bookworm-slim AS deps
-RUN npm install -g bun@1 --no-fund --no-audit
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g bun@1 --no-fund --no-audit
 WORKDIR /app
 COPY package.json bun.lock ./
+# `bun install` triggers postinstall = `prisma generate` → needs the schema
+COPY prisma/schema.prisma ./prisma/schema.prisma
 RUN bun install
 
 # ---------- Stage 2: build ----------
 FROM node:22-bookworm-slim AS builder
-RUN npm install -g bun@1 --no-fund --no-audit
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g bun@1 --no-fund --no-audit
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1 \
     # Dummy URLs: `prisma generate` does not connect to the database, and the
@@ -36,7 +55,10 @@ RUN bun run build
 
 # ---------- Stage 3: runtime ----------
 FROM node:22-bookworm-slim AS runner
-RUN groupadd -g 1001 app \
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/* \
+ && groupadd -g 1001 app \
  && useradd -r -u 1001 -g app -d /app appuser \
  # bun + prisma CLI: the entrypoint runs `migrate deploy` and the seed at boot
  && npm install -g bun@1 --no-fund --no-audit
