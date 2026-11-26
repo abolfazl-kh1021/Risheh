@@ -17,6 +17,7 @@ const ICON_CODEPOINTS: Record<string, number> = {
   arrow_left_alt: 0xEF7D,
   article: 0xEF42,
   assignment: 0xE85D,
+  bolt: 0xEA0B,
   assignment_add: 0xF848,
   assured_workload: 0xEB6F,
   auto_stories: 0xE666,
@@ -44,6 +45,7 @@ const ICON_CODEPOINTS: Record<string, number> = {
   draw: 0xE746,
   edit: 0xF097,
   edit_note: 0xE745,
+  install_mobile: 0xEB44,
   encrypted: 0xE593,
   error: 0xF8B6,
   expand_less: 0xE5CE,
@@ -133,6 +135,9 @@ const ICON_CODEPOINTS: Record<string, number> = {
   visibility_off: 0xE8F5,
   volunteer_activism: 0xEA70,
   vpn_key: 0xE0DA,
+  notifications: 0xE7F4,
+  location_off: 0xE0C7,
+  wifi_off: 0xE6C5,
   workspace_premium: 0xE7AF,
 };
 

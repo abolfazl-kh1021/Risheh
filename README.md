@@ -8,13 +8,14 @@
 
 فروشگاه کامل، شناسنامه اصالت هولوگرام‌دار، آزمایشگاه اصالت آثار و سامانه مدیریت تخفیف‌های مناسبتی — با تجربه‌کاربری کاملاً فارسی و راست‌به‌چپ
 
-[Next.js 16](https://nextjs.org/) · [TypeScript](https://www.typescriptlang.org/) · [Tailwind CSS 4](https://tailwindcss.com/) · [shadcn/ui](https://ui.shadcn.com/) · [Prisma 6](https://www.prisma.io/) · SQLite · Docker · PWA
+[Next.js 16](https://nextjs.org/) · [TypeScript](https://www.typescriptlang.org/) · [Tailwind CSS 4](https://tailwindcss.com/) · [shadcn/ui](https://ui.shadcn.com/) · [Prisma 6](https://www.prisma.io/) · PostgreSQL (Neon) · Vercel · Docker · PWA
 
 ![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)
+![Neon](https://img.shields.io/badge/Neon-Serverless_Postgres-00E599?logo=neon&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 ![lang](https://img.shields.io/badge/lang-fa--IR%20(RTL)-00695C)
@@ -197,7 +198,7 @@ bun run dev                # یا: npm run dev
 | --- | --- |
 | فریم‌ورک | Next.js 16 (App Router)، TypeScript strict |
 | رابط کاربری | Tailwind CSS 4 + shadcn/ui، آیکون‌های Material Symbols، فونت وزیرمتن (self-hosted) |
-| داده | Prisma ORM + SQLite (`db/custom.db`) با ۲۵ مدل |
+| داده | Prisma ORM + PostgreSQL (Neon) با ۲۵ مدل — مهاجرت‌شده از SQLite |
 | حالت | Server Components + Server Actions (بدون کتابخانه state سمت کلاینت) |
 | احراز هویت | آداپتور دمو — هش scrypt، کوکی نشست `httpOnly`، ذخیره نشست سمت سرور |
 | مسیریابی | تک‌صفحه (`/`) با روتر hash داخلی (`#/home`، `#/product/<id>`، `#/admin`، …) |
@@ -245,6 +246,7 @@ public/assets/     # تصاویر منتخب + فونت‌های وزیرمتن 
 | `docs/SECURITY.md` | احراز هویت، مجوزدهی، اعتبارسنجی و مرزهای دمو |
 | `docs/TESTING.md` | چه چیزهایی تأیید شده و چه چیزهایی پوشش داده نشده |
 | `docs/DEPLOYMENT.md` | متغیرهای محیط، پیکربندی سرویس‌دهنده‌ها |
+| `docs/DEPLOY-POSTGRES-FA.md` | **استقرار Vercel + Neon PostgreSQL — مهاجرت داده، کارایی و عیب‌یابی** |
 | `docs/DECISIONS.md` | تصمیم‌های فنی/محصولی و دلیلشان |
 | `docs/PROGRESS.md` · `docs/HANDOFF.md` · `docs/CHANGELOG.md` | وضعیت فازها و ادامه کار |
 | `docs/screenshots/` | اسکرین‌شات‌های همین README |

@@ -3,8 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // PostgreSQL (Neon) — since the Vercel deployment.
+  //
+  //   DATABASE_URL            → pooled connection (Neon `-pooler` endpoint, PgBouncer)
+  //                             used by Prisma Client at runtime.
+  //   DIRECT_DATABASE_URL     → direct (non-pooled) connection, used by the Prisma
+  //                             CLI for migrations (`migrate dev/deploy`, `db push`).
+  //                             DDL must never go through PgBouncer's transaction pool.
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // ============ Users & Auth ============

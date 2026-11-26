@@ -112,6 +112,28 @@ export function DiscountsView({ data, navigate, refresh }: Props) {
     }
   };
 
+  // تخفیف‌ها فقط برای کاربران واردشده است — مهمان‌ها صفحه ورود را می‌بینند
+  // (بعد از همه hooks تا قانون hooks در React نقض نشود)
+  if (!user) {
+    return (
+      <div className="max-w-7xl mx-auto px-gutter py-space-xl">
+        <div className="bg-surface-container-lowest rounded-2xl elevation-1 p-10 text-center flex flex-col items-center gap-3">
+          <MSymbol name="lock_person" size={44} className="text-outline" />
+          <p className="font-headline-md text-primary font-bold">تخفیف‌ها و کدهای هدیه مخصوص کاربران است</p>
+          <p className="text-sm text-on-surface-variant">
+            برای دیدن کمپین‌های تخفیف و دریافت کدهای هدیه، ابتدا وارد حساب خود شوید یا ثبت‌نام کنید.
+          </p>
+          <button
+            onClick={() => navigate("login")}
+            className="mt-1 bg-primary text-on-primary rounded-xl px-6 py-3 text-sm font-bold hover:bg-primary-container transition"
+          >
+            ورود | ثبت‌نام
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-gutter py-space-lg pb-space-xl">
       {/* Hero */}

@@ -22,6 +22,8 @@ import { CartView } from "@/risheh/views/CartView";
 import { AboutView } from "@/risheh/views/AboutView";
 import { BlogView } from "@/risheh/views/BlogView";
 import { ContactView } from "@/risheh/views/ContactView";
+import { AppView } from "@/risheh/views/AppView";
+import { NotFoundView } from "@/risheh/views/NotFoundView";
 
 // Heavy / rarely-visited views are code-split: their JS ships on demand,
 // keeping the initial bundle focused on the storefront shell (PERFORMANCE.md §5).
@@ -232,6 +234,8 @@ export function RishehApp({ data: rawData }: { data: AppData }) {
         return <BlogView {...shared} />;
       case "contact":
         return <ContactView />;
+      case "app":
+        return <AppView navigate={navigate} />;
       case "dashboard":
         return <DashboardView {...shared} />;
       case "artworks":
@@ -249,7 +253,8 @@ export function RishehApp({ data: rawData }: { data: AppData }) {
       case "discounts":
         return <DiscountsView {...shared} />;
       default:
-        return <HomeView {...shared} />;
+        // Unknown route → branded 404 page (search-404 requirement)
+        return <NotFoundView navigate={navigate} kind="route" />;
     }
   };
 

@@ -1,6 +1,6 @@
 # DATA_MODEL.md
 
-Prisma schema: `prisma/schema.prisma` (SQLite; portable to Postgres). Seed:
+Prisma schema: `prisma/schema.prisma` (PostgreSQL/Neon — migrated from SQLite). Seed:
 `prisma/seed.ts` (`bun prisma/seed.ts` — destructive reset + demo data).
 
 ## Entities overview
@@ -45,7 +45,7 @@ Prisma schema: `prisma/schema.prisma` (SQLite; portable to Postgres). Seed:
 - Indexes: `sessions.token`, `cart_items.userId/guestKey`, `artworks.sellerId/
   categoryId/status`, `orders.buyerId`, `order_items.orderId/sellerId`,
   `payment_attempts.orderId`, `ledger_entries.sellerId`, `audit_logs.createdAt`.
-- SQLite has no enums → statuses are constrained strings validated by Zod in actions.
+- Statuses are constrained strings validated by Zod in actions (schema-level enums are not used, keeping the model portable).
 
 ## Seed data (clearly labeled demo)
 

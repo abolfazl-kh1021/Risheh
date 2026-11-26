@@ -7,6 +7,7 @@ import { faDate, faNum, faPrice } from "@/lib/fa";
 import type { AppData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { NotFoundView } from "@/risheh/views/NotFoundView";
 
 type Shared = {
   data: AppData;
@@ -60,20 +61,7 @@ export function ProductView({ data, navigate, onAddToCart, onToggleFavorite, isF
   );
 
   if (!artwork) {
-    return (
-      <div className="max-w-7xl mx-auto px-gutter py-space-xl">
-        <div className="bg-surface-container-lowest rounded-2xl elevation-1 p-12 text-center flex flex-col items-center gap-3">
-          <MSymbol name="search_off" size={44} className="text-outline" />
-          <p className="font-headline-md text-primary font-bold">اثر مورد نظر یافت نشد</p>
-          <button
-            onClick={() => navigate("categories/all")}
-            className="bg-primary text-on-primary rounded-xl px-5 py-2.5 text-sm font-bold hover:bg-primary-container transition"
-          >
-            بازگشت به گنجینه آثار
-          </button>
-        </div>
-      </div>
-    );
+    return <NotFoundView navigate={navigate} kind="artwork" categories={data.categories} />;
   }
 
   const discount =

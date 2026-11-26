@@ -12,7 +12,7 @@ actions (Phase 9 manual steps).
 ## 1. Repository hygiene (ready)
 
 - `.gitignore` covers `.env*` (except `.env.example`), `node_modules`, `.next`,
-  `db/` (SQLite), `risheh-source/` (extracted archive), logs, uploads.
+  `db/` (legacy SQLite backup — migration source), `risheh-source/` (extracted archive), logs, uploads.
 - `.env.example` documents every variable (see §3).
 - Lockfile: `bun.lock` committed. Build command: standard Next.js (no custom output
   config required for Vercel).
@@ -28,11 +28,10 @@ git remote add origin git@github.com:<you>/risheh.git
 git push -u origin main
 ```
 
-Vercel:
+Vercel (full Persian walkthrough incl. Neon + data migration: `docs/DEPLOY-POSTGRES-FA.md`):
 1. Import the GitHub repo (framework auto-detected: Next.js).
-2. Build command `bun run build` or default `next build`; install `bun install`.
-3. Set env vars (Production + Preview) — see §3. At minimum `AUTH_SECRET` and a
-   production `DATABASE_URL`.
+2. Build command: `vercel-build` script handles `prisma generate && prisma migrate deploy && next build` (or set it manually).
+3. Set env vars (Production + Preview) — see §3. At minimum `AUTH_SECRET`, `DATABASE_URL` (Neon pooled) and `DIRECT_DATABASE_URL` (Neon direct).
 4. Deploy → verify `/`, `#/categories/carpet`, `#/product/<id>`, `#/verify`,
    login + checkout smoke tests on the deployed URL.
 
@@ -43,7 +42,8 @@ executed inside the sandbox while the dev server owns the port).
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | ✅ | Prisma connection. SQLite for dev (`file:./db/custom.db`); use Postgres (Neon/Supabase/Vercel Postgres) for production |
+| `DATABASE_URL` | ✅ | Prisma Client runtime connection — **Neon pooled** string (`-pooler` host, `pgbouncer=true`, serverless-safe params) |
+| `DIRECT_DATABASE_URL` | ✅ | Prisma CLI only (`migrate deploy`, `db push`, `studio`) — **Neon direct** string (no `-pooler`) |
 | `AUTH_SECRET` | ✅ prod | HMAC secret for session cookie signing (`openssl rand -hex 32`) |
 | `PAYMENT_*` (placeholder) | for real payments | Merchant/terminal/key of the chosen gateway (Zarinpal/Mellat/Zibal) |
 | `SMS_*` (placeholder) | for OTP login | SMS provider API key + sender |
@@ -51,9 +51,8 @@ executed inside the sandbox while the dev server owns the port).
 
 ## 4. Persistence rules
 
-- **Do not rely on local filesystem writes for production data.** SQLite (`file:`)
-  is dev-only; on Vercel use a managed Postgres and run `prisma db push`/migrations
-  from CI or locally against the remote DB.
+- **All persistent data lives in PostgreSQL (Neon).** Local dev points `DATABASE_URL` at any Postgres 16 instance (docker-compose `db` service or Neon). Schema changes go through Prisma migrations (`prisma migrate dev` locally, `prisma migrate deploy` on deploy).
+- The legacy SQLite file (`db/custom.db`) is a read-only backup + source for the one-shot migration script (`scripts/migrate-sqlite-to-postgres.ts`). The app never touches it.
 - Uploads: no filesystem storage is used; a real upload feature must use an object
   store (S3-compatible / Vercel Blob) with validation.
 
@@ -65,7 +64,7 @@ executed inside the sandbox while the dev server owns the port).
 | OTP login | Tab visible with honest "not configured" notice | SMS provider; rate-limit persistence |
 | Email/newsletter | Stored request, honest demo response | Email provider; template + domain verification |
 | Uploads | Curated local library only | Object storage + type/size/malware validation |
-| DB | SQLite file | Managed Postgres + migrations |
+| DB | PostgreSQL (Neon) — migrated from SQLite | Managed Postgres + migrations (current state) |
 
 ## 6. SEO / metadata
 
@@ -85,23 +84,23 @@ executed inside the sandbox while the dev server owns the port).
 
 Multi-stage `Dockerfile` (deps → build → slim runner). The production build runs
 under **Node 22 LTS** with the Next.js **standalone** output; **Bun** is used only
-for fast, lockfile-exact dependency installation (`bun.lock`).
+for fast, lockfile-exact dependency installation (`bun.lock`). The container
+connects to PostgreSQL through `DATABASE_URL` (compose `db` service or Neon).
 
 ```bash
-docker compose up -d --build      # → http://localhost:3000
-docker compose logs -f web        # watch the boot
-docker compose down -v            # stop + factory-reset the demo DB
+docker compose up -d --build      # → http://localhost:3000 (with postgres:16 service)
+docker compose logs -f web        # watch the boot: migrate deploy → seed → server
+docker compose down -v            # stop + factory-reset the Postgres volume
 ```
 
 Design decisions:
 
-- **Baked demo DB**: the builder stage creates the schema (`prisma db push`) and
-  seeds demo data (8 users / 58 artworks, password `risheh1403`); the pristine DB
-  is stored at `/opt/seed-db` in the image. `docker/entrypoint.sh` materializes it
-  into `/app/db` on first boot — so a `docker run` works out of the box, even from
-  a fresh clone (`db/` is gitignored).
-- **Persistence**: `docker-compose.yml` mounts the named volume `risheh-db` at
-  `/app/db`. Bind-mount a host folder only if it is writable by uid 1001.
+- **Boot-time migrations**: `docker/entrypoint.sh` waits for Postgres, runs
+  `prisma migrate deploy`, seeds the demo dataset (8 users / 58 artworks, password
+  `risheh1403`) only when the database is empty, then starts the server.
+- **Persistence**: `docker-compose.yml` stores data in the named volume `risheh-pg`
+  attached to the `db` service. Point `DATABASE_URL`/`DIRECT_DATABASE_URL` at Neon
+  to run the web container without the local `db` service.
 - **Non-root**: runtime runs as `appuser` (uid 1001); `openssl` + `ca-certificates`
   installed for the Prisma engine and outbound TLS.
 - **Health**: `/api/health` (DB-free, auth-free) powers the Docker `HEALTHCHECK`,
@@ -110,9 +109,8 @@ Design decisions:
   so seeding works from a fresh clone without the gitignored `risheh-source/` archive.
 - `.dockerignore` excludes `.env*` (secrets never baked), `node_modules`, `db`,
   `docs`, sandbox artifacts — build context stays small and secret-free.
-- Postgres swap path is pre-staged as a commented `db` service in Compose: change
-  `provider` in `prisma/schema.prisma`, `bunx prisma db push`, set `DATABASE_URL`,
-  remove the SQLite volume.
+- Postgres swap is done — the compose file ships an active `postgres:16` service
+  and the schema is `postgresql` with pooled/direct URL split (`schema.prisma`).
 
 ## 9. CI/CD — GitHub Actions (v0.10.0)
 
@@ -120,7 +118,7 @@ Design decisions:
 
 | Job | Steps | Purpose |
 | --- | --- | --- |
-| `quality` | `bun install --frozen-lockfile` → `prisma generate` + local SQLite schema (`prisma db push` against `$RUNNER_TEMP`) → `lint` → `build` (with dummy `DATABASE_URL`/`AUTH_SECRET`) | Gates merges on a **verified production build** — the sandbox cannot run `next build` (dev server owns the port), so CI is the first place the build is proven |
+| `quality` | `bun install --frozen-lockfile` → `prisma generate` + `prisma migrate deploy` against a **Postgres 16 service container** → `lint` → `build` | Gates merges on a **verified production build** — the sandbox cannot run `next build` (dev server owns the port), so CI is the first place the build is proven |
 | `docker` | Buildx build (GHA layer cache) → **smoke test**: `docker run` + poll `/api/health` up to 60 s → on pushes to `main`: publish to GHCR (`ghcr.io/<owner>/<repo>:latest` + `:sha-<sha>`, lowercase-normalized) | The Dockerfile itself is tested on every change; images are only published after lint/build/smoke all pass |
 
 Notes:

@@ -1,6 +1,8 @@
 "use client";
 
 import { MSymbol } from "@/components/icons";
+import { AppInstallSection } from "@/components/storefront/AppInstallSection";
+import { HeroCarousel, type CarouselSlide } from "@/components/storefront/HeroCarousel";
 import { faNum, faPrice } from "@/lib/fa";
 import type { AppData, ArtworkDTO } from "@/lib/types";
 import { HOME_IMG } from "@/risheh/homeAssets";
@@ -33,6 +35,64 @@ const FEATURED: Array<{ slug: string; rating: string; title: string; img: string
   { slug: "home-featured-4", rating: "۴.۷", title: "رومیزی قلمکار", img: HOME_IMG.U5f76e62c },
 ];
 
+/**
+ * Carousel slides — every slide promotes a different section of the site and
+ * carries its own image (main store, authenticity verification, blog,
+ * about/ateliers, app install).
+ */
+const SLIDES: CarouselSlide[] = [
+  {
+    id: "store",
+    kicker: "اصالت، ذوق و هنر ایرانی",
+    titleGold: "هنر،",
+    titleWhite: "در دستان شما",
+    desc: "خرید و فروش آثار هنری و صنایع دستی اصیل ایرانی به صورت مستقیم از برجسته‌ترین استادکاران و هنرمندان",
+    cta: "مشاهده محصولات",
+    img: HOME_IMG.Ua97b0e9f,
+    target: "categories/all",
+  },
+  {
+    id: "verify",
+    kicker: "شناسنامه رسمی اصالت",
+    titleGold: "اصالت هر اثر،",
+    titleWhite: "قابل استعلام",
+    desc: "هر اثر با هولوگرام و شناسنامه دیجیتال عرضه می‌شود؛ کد شناسنامه را وارد کنید و اصالت آن را همین حالا استعلام بگیرید.",
+    cta: "استعلام اصالت اثر",
+    img: "/assets/img/img_ca1d96390021.webp",
+    target: "verify",
+  },
+  {
+    id: "blog",
+    kicker: "دانشنامه هنرهای دستی",
+    titleGold: "با راز هنرهای کهن",
+    titleWhite: "آشنا شوید",
+    desc: "از فلسفه رنگ فیروزه‌ای سفال لالجین تا راز گره‌های فرش عشایری؛ مقالات تخصصی ریشه شما را با روح هنر ایرانی همراه می‌کند.",
+    cta: "مطالعه وبلاگ",
+    img: "/assets/img/img_ba422ffe1783.webp",
+    target: "blog",
+  },
+  {
+    id: "about",
+    kicker: "روایت کارگاه‌ها و استادکاران",
+    titleGold: "از دل کارگاه‌های",
+    titleWhite: "اصیل ایران",
+    desc: "با مکتب‌های نام‌آور اصفهان، یزد، تبریز و شیراز آشنا شوید؛ استادکارانی که هر اثر را با امضای خود و مهر اصالت عرضه می‌کنند.",
+    cta: "آشنایی با ریشه",
+    img: "/assets/img/img_08307b5171ff.webp",
+    target: "about",
+  },
+  {
+    id: "app",
+    kicker: "اپلیکیشن ریشه",
+    titleGold: "گنجینه ریشه،",
+    titleWhite: "در جیب شما",
+    desc: "با نصب اپ ریشه، سریع‌تر بخرید، از تخفیف‌ها زودتر باخبر شوید و حتی بدون اینترنت آثار بازدیدشده را مرور کنید.",
+    cta: "نصب اپلیکیشن",
+    img: "/assets/img/dl_af6f95412a.webp",
+    scrollTarget: "app-install",
+  },
+];
+
 export function HomeView({ data, navigate, onAddToCart, onToggleFavorite }: Props) {
   const bySlug = (slug: string): ArtworkDTO | undefined =>
     data.artworks.find((a) => a.slug === slug) ??
@@ -42,69 +102,13 @@ export function HomeView({ data, navigate, onAddToCart, onToggleFavorite }: Prop
 
   return (
     <div className="persian-pattern-bg min-h-[60vh]">
-      {/* ============ Hero banner (original index.html design) ============ */}
-      <section className="w-full px-3 md:px-8 py-4">
+      {/* ============ Hero carousel (one slide per site section) ============ */}
+      <section className="w-full px-3 md:px-8 py-4" aria-roledescription="carousel" aria-label="معرفی بخش‌های ریشه">
         <div
-          className="max-w-7xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl min-h-[460px] flex items-center justify-between border border-[#E9DAC3]"
+          className="max-w-7xl mx-auto relative rounded-3xl overflow-hidden shadow-2xl border border-[#E9DAC3]"
           style={{ background: "radial-gradient(circle at 75% 50%, #0d3833 0%, #07221e 100%)" }}
         >
-          <div className="absolute inset-0 z-0">
-            { }
-            {/* LCP image: eager + high priority (it paints the hero background) */}
-            <img
-              alt="صحنه هنر سنتی ایرانی"
-              className="w-full h-full object-cover object-left opacity-35 mix-blend-luminosity scale-105"
-              src={HOME_IMG.Ua97b0e9f}
-              fetchPriority="high"
-              decoding="async"
-            />
-            <div className="absolute inset-0 bg-gradient-to-l from-[#082622] via-[#0b332e]/90 to-transparent" />
-            <div className="absolute inset-0 bg-radial from-transparent via-[#092b27]/40 to-[#071f1c]" />
-          </div>
-
-          <div className="hidden lg:block relative z-10 w-1/2 h-full mr-8 pointer-events-none">
-            <div className="relative w-full h-[440px] flex items-center justify-center">
-              <div className="absolute w-80 h-80 rounded-full bg-brand-gold/15 blur-2xl" />
-              { }
-              <img
-                alt="نمایش هنرهای دستی ایرانی"
-                className="w-[420px] h-[360px] object-cover rounded-2xl shadow-2xl ring-4 ring-brand-gold/30 rotate-[-1deg]"
-                src={HOME_IMG.Uaf6f9541}
-                fetchPriority="high"
-                decoding="async"
-              />
-            </div>
-          </div>
-
-          <div className="relative z-10 w-full lg:w-1/2 p-6 sm:p-8 md:p-14 flex flex-col items-start justify-center text-right">
-            <div className="mb-3 text-brand-gold/80 flex items-center gap-2">
-              <span className="w-8 h-px bg-brand-gold" />
-              <span className="text-xs font-semibold tracking-wider">اصالت، ذوق و هنر ایرانی</span>
-            </div>
-            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight mb-4 tracking-tight drop-shadow-md">
-              <span className="text-brand-lightGold">هنر،</span> در دستان شما
-            </h1>
-            <p className="text-gray-200 text-sm md:text-base mb-8 font-light max-w-md leading-relaxed opacity-95">
-              خرید و فروش آثار هنری و صنایع دستی اصیل ایرانی به صورت مستقیم از برجسته‌ترین استادکاران
-              و هنرمندان
-            </p>
-            <button
-              onClick={() => navigate("categories/all")}
-              className="inline-flex items-center gap-3 bg-gradient-to-l from-brand-gold to-brand-lightGold hover:from-amber-500 hover:to-brand-gold text-brand-darkTeal font-bold px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 text-sm md:text-base"
-            >
-              <span>مشاهده محصولات</span>
-              <svg
-                className="w-4 h-4 transform rotate-180"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="M14 5l7 7m0 0l-7 7m7-7H3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          </div>
+          <HeroCarousel slides={SLIDES} navigate={navigate} />
         </div>
       </section>
 
@@ -124,7 +128,6 @@ export function HomeView({ data, navigate, onAddToCart, onToggleFavorite }: Prop
               className="group snap-start shrink-0 w-[112px] sm:w-[128px] md:w-auto bg-brand-cardBg border border-brand-borderTone rounded-2xl p-2.5 md:p-3 flex flex-col items-center justify-center craft-shadow text-center"
             >
               <div className="w-full aspect-square rounded-xl overflow-hidden mb-3 bg-[#f4ecdf]">
-                { }
                 <img
                   alt={c.label.replace("\n", " ")}
                   src={c.img}
@@ -164,7 +167,6 @@ export function HomeView({ data, navigate, onAddToCart, onToggleFavorite }: Prop
                   className="block w-full aspect-[4/3] overflow-hidden"
                   aria-label={a.title}
                 >
-                  { }
                   <img
                     alt={a.title}
                     src={a.images[0]}
@@ -209,6 +211,9 @@ export function HomeView({ data, navigate, onAddToCart, onToggleFavorite }: Prop
           ))}
         </div>
       </section>
+
+      {/* ============ App install (QR + features + one-tap install) ============ */}
+      <AppInstallSection />
 
       {/* ============ Trust badges (original section) ============ */}
       <section className="w-full px-3 md:px-8 py-6">

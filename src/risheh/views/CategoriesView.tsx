@@ -7,6 +7,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { faNum } from "@/lib/fa";
 import type { AppData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { NotFoundView } from "@/risheh/views/NotFoundView";
 
 type Shared = {
   data: AppData;
@@ -265,6 +266,17 @@ export function CategoriesView({ data, navigate, onAddToCart, onToggleFavorite, 
       {/* Results grid */}
       <section className="max-w-7xl mx-auto px-gutter pb-space-xl">
         {results.length === 0 ? (
+          // A search text (submitted or typed) that the real database cannot
+          // match gets the branded 404 page ("صفحه خطای ۴۰۴"); filter-only
+          // emptiness keeps the lighter inline empty state.
+          debouncedSearch.trim() ? (
+            <NotFoundView
+              navigate={navigate}
+              kind="search"
+              query={debouncedSearch.trim()}
+              categories={data.categories}
+            />
+          ) : (
           <div className="bg-surface-container-lowest rounded-2xl elevation-1 p-8 sm:p-12 text-center flex flex-col items-center gap-3">
             <MSymbol name="search_off" size={44} className="text-outline" />
             <p className="font-headline-md text-headline-md text-primary font-bold">اثری یافت نشد</p>
@@ -282,6 +294,7 @@ export function CategoriesView({ data, navigate, onAddToCart, onToggleFavorite, 
               حذف فیلترها
             </button>
           </div>
+          )
         ) : (
           <div className="grid grid-cols-1 min-[560px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {results.map((a) => (

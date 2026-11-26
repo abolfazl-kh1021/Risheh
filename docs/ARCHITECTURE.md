@@ -2,7 +2,7 @@
 
 ## 1. Stack decision
 
-**Next.js 16 (App Router) + TypeScript strict + Tailwind CSS 4 + Prisma/SQLite.**
+**Next.js 16 (App Router) + TypeScript strict + Tailwind CSS 4 + Prisma/PostgreSQL (Neon).**
 
 Reasons (see `DECISIONS.md` D1 for alternatives):
 - The project contract prefers Next.js App Router unless the audit says otherwise.
@@ -11,7 +11,7 @@ Reasons (see `DECISIONS.md` D1 for alternatives):
 - Tailwind 4 `@theme` lets the original source class names (`bg-primary-container`,
   `text-on-surface-variant`, `gap-space-md`, …) work verbatim, which is the single
   biggest enabler of design fidelity.
-- SQLite via Prisma is the sandbox-supported persistence; the schema is portable to
+- PostgreSQL (Neon) via Prisma is the persistence layer for Vercel deployment; for local dev a Postgres 16 instance (docker-compose) or any Postgres works. The schema was migrated from SQLite
   Postgres for production.
 
 ## 2. The single-route SPA decision (important)

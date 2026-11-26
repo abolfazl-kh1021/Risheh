@@ -47,7 +47,7 @@ design language, and do not change architecture without writing the reason into
 ```bash
 bun run dev        # dev server on :3000 (auto-run by the sandbox; do not start manually)
 bun run lint       # ESLint (must pass with 0 errors)
-bun run db:push    # apply prisma/schema.prisma to the SQLite DB
+bun run db:push    # apply prisma/schema.prisma to PostgreSQL (dev only — use migrations in prod)
 bun prisma/seed.ts # (re)seed demo data — destroys existing rows
 ```
 

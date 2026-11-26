@@ -1,9 +1,10 @@
 # =============================================================================
-# Risheh — CI/CD
+# Risheh — CI/CD (PostgreSQL edition)
 #
-# Job 1 (quality): install → prisma generate + local SQLite schema → lint → build
-# Job 2 (docker):  multi-stage image build → container smoke test →
-#                  publish to GHCR on pushes to main
+# Job 1 (quality): install → prisma generate → migrations against a Postgres 16
+#                  service container → lint → production build
+# Job 2 (docker):  multi-stage image build → container smoke test (with its own
+#                  Postgres 16 service) → publish to GHCR on pushes to main
 #
 # Note: the build is executed in CI because the dev sandbox cannot run
 # `next build` (dev server owns the port). A green CI = a verified production
@@ -27,6 +28,23 @@ jobs:
   quality:
     name: Lint & build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: risheh
+          POSTGRES_PASSWORD: risheh_ci
+          POSTGRES_DB: risheh
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U risheh -d risheh"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://risheh:risheh_ci@127.0.0.1:5432/risheh?sslmode=disable&connection_limit=10
+      DIRECT_DATABASE_URL: postgresql://risheh:risheh_ci@127.0.0.1:5432/risheh?sslmode=disable
     steps:
       - uses: actions/checkout@v4
 
@@ -37,18 +55,16 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Prisma — generate client & create local SQLite schema
+      - name: Prisma — generate client & apply migrations
         run: |
-          mkdir -p "$RUNNER_TEMP/risheh-db"
           bunx prisma generate
-          DATABASE_URL="file:$RUNNER_TEMP/risheh-db/ci.db" bunx prisma db push --accept-data-loss
+          bunx prisma migrate deploy
 
       - name: Lint
         run: bun run lint
 
       - name: Build (production)
         env:
-          DATABASE_URL: file:${{ runner.temp }}/risheh-db/ci.db
           AUTH_SECRET: ci-dummy-secret
         run: bun run build
 
@@ -59,6 +75,20 @@ jobs:
     permissions:
       contents: read
       packages: write
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: risheh
+          POSTGRES_PASSWORD: risheh_ci
+          POSTGRES_DB: risheh
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U risheh -d risheh"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -74,8 +104,15 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Smoke test (boot + /api/health)
+        env:
+          PG_URL: postgresql://risheh:risheh_ci@host.docker.internal:5432/risheh?sslmode=disable
         run: |
-          docker run -d --name risheh -p 3000:3000 -e AUTH_SECRET=smoke-secret risheh:ci
+          docker run -d --name risheh -p 3000:3000 \
+            -e AUTH_SECRET=smoke-secret \
+            -e DATABASE_URL="$PG_URL" \
+            -e DIRECT_DATABASE_URL="$PG_URL" \
+            --add-host=host.docker.internal:host-gateway \
+            risheh:ci
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/api/health | grep -q '"ok":true'; then
               echo "✅ container healthy after ~$((i * 2))s"

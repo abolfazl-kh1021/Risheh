@@ -21,6 +21,7 @@
   "shortcuts": [
     { "name": "همه آثار", "short_name": "آثار", "url": "/#/categories/all", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
     { "name": "سبد خرید", "short_name": "سبد", "url": "/#/cart", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "استعلام اصالت", "short_name": "اصالت", "url": "/#/verify", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "استعلام اصالت", "short_name": "اصالت", "url": "/#/verify", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "نصب اپلیکیشن", "short_name": "نصب اپ", "url": "/#/app", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

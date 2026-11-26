@@ -111,6 +111,9 @@ export function SiteFooter({
               <button onClick={() => onNavigate("blog")} className="hover:text-surface-bright transition-colors text-right py-0.5">
                 دانشنامه هنرهای دستی
               </button>
+              <button onClick={() => onNavigate("app")} className="hover:text-surface-bright transition-colors text-right py-0.5">
+                نصب اپلیکیشن ریشه روی گوشی
+              </button>
             </div>
           </div>
 

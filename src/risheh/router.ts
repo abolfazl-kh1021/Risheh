@@ -25,9 +25,15 @@ function parseHash(): Route {
 }
 
 export function useRouter() {
-  const [route, setRoute] = useState<Route>(() =>
-    typeof window === "undefined" ? { view: "home" } : parseHash()
-  );
+  // Hydration-safe initial state: the server can never know the URL hash, so
+  // SSR always renders the "home" view. The client's FIRST render must match
+  // that HTML (no React hydration mismatch on deep links like #/product/x),
+  // and the real hash is adopted right after mount — useLayoutEffect runs
+  // before the browser paints, so there is no visible flash.
+  const [route, setRoute] = useState<Route>(() => ({
+    view: "home",
+    query: new URLSearchParams(),
+  }));
 
   useEffect(() => {
     const onChange = () => {
@@ -36,6 +42,10 @@ export function useRouter() {
       setRoute(parseHash());
     };
     window.addEventListener("hashchange", onChange);
+    // Adopt the real deep-link hash right after hydration (one commit —
+    // imperceptible, and it keeps the server HTML + first client render
+    // identical so React never reports a hydration mismatch).
+    onChange();
     return () => window.removeEventListener("hashchange", onChange);
   }, []);
 

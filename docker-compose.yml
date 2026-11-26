@@ -1,13 +1,18 @@
 # =============================================================================
-# Risheh — local production-style deployment
+# Risheh — local production-style deployment (PostgreSQL edition)
 #
 #   docker compose up -d --build     → http://localhost:3000
 #
-# The web image ships with a freshly seeded demo database (8 users, 58
-# artworks; demo password: risheh1403). Data persists in the `risheh-db`
-# named volume — delete it for a factory reset:
+# The web container connects to the `db` Postgres 16 service below. On first
+# boot the entrypoint applies Prisma migrations and seeds the demo dataset
+# (8 users, 58 artworks; demo password: risheh1403). Data persists in the
+# `risheh-pg` named volume — delete it for a factory reset:
 #
 #   docker compose down -v
+#
+# To run the web container against Neon instead of the local db service,
+# set DATABASE_URL/DIRECT_DATABASE_URL in the `web.environment` block
+# (pooled + direct strings from the Neon dashboard) and remove `depends_on`.
 # =============================================================================
 name: risheh
 
@@ -23,10 +28,13 @@ services:
       # Session-cookie signing secret. Set a real one for any serious use:
       #   AUTH_SECRET=$(openssl rand -hex 32) docker compose up -d
       AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production}
-      # DATABASE_URL is baked into the image (file:/app/db/custom.db).
-      # Override it here only if you swap the datasource (e.g. Postgres).
-    volumes:
-      - risheh-db:/app/db
+      # Runtime (Prisma Client) connection — direct inside the compose network.
+      DATABASE_URL: postgresql://risheh:${POSTGRES_PASSWORD:-risheh_local_pw}@db:5432/risheh?sslmode=disable&connection_limit=10&pool_timeout=20&connect_timeout=15
+      # CLI/migrations connection (migrate deploy in the entrypoint).
+      DIRECT_DATABASE_URL: postgresql://risheh:${POSTGRES_PASSWORD:-risheh_local_pw}@db:5432/risheh?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test:
@@ -39,28 +47,34 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 25s
 
-  # ---------------------------------------------------------------------------
-  # Future: managed Postgres. The Prisma schema currently uses SQLite; to move
-  # to Postgres: change `provider` in prisma/schema.prisma, run
-  # `bunx prisma db push`, set DATABASE_URL below, and remove the risheh-db
-  # volume. Left here (commented) so the swap is a two-minute job.
-  # ---------------------------------------------------------------------------
-  # db:
-  #   image: postgres:16-alpine
-  #   environment:
-  #     POSTGRES_USER: risheh
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
-  #     POSTGRES_DB: risheh
-  #   volumes:
-  #     - risheh-pg:/var/lib/postgresql/data
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U risheh"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: risheh
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-risheh_local_pw}
+      POSTGRES_DB: risheh
+      # Performance defaults tuned for a small self-hosted marketplace
+      # (see docs/DEPLOY-POSTGRES-FA.md for tuning notes).
+    command:
+      [
+        "postgres",
+        "-c", "max_connections=100",
+        "-c", "shared_buffers=256MB",
+        "-c", "effective_cache_size=768MB",
+        "-c", "work_mem=8MB",
+        "-c", "maintenance_work_mem=128MB",
+        "-c", "wal_compression=on",
+      ]
+    volumes:
+      - risheh-pg:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U risheh -d risheh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  risheh-db:
+  risheh-pg:

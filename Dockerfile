@@ -2,10 +2,11 @@
 
 # =============================================================================
 # Risheh — Persian handicrafts marketplace
-# Multi-stage image: deps → build (with a freshly seeded demo DB) → slim runner.
-# Runs the Next.js standalone output under Node 22 LTS (the battle-tested
-# runtime for Next standalone + Prisma + sharp). Bun is used only where it
-# shines: fast, lockfile-exact dependency installation (bun.lock).
+# Multi-stage image: deps → build → slim runner.
+# PostgreSQL edition: the container connects to a Postgres server through
+# DATABASE_URL (docker-compose service or a managed database like Neon).
+# The runner ships bun + the Prisma CLI so the entrypoint can run
+# `prisma migrate deploy` and the demo seed on first boot.
 # =============================================================================
 
 # ---------- Stage 1: dependencies ----------
@@ -20,45 +21,45 @@ FROM node:22-bookworm-slim AS builder
 RUN npm install -g bun@1 --no-fund --no-audit
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1 \
-    DATABASE_URL=file:/app/db/custom.db
+    # Dummy URLs: `prisma generate` does not connect to the database, and the
+    # Next.js build only needs the env vars to EXIST for Prisma to resolve
+    # the datasource (no queries run at build time in this app).
+    DATABASE_URL=postgresql://build:build@localhost:5432/build?sslmode=disable \
+    DIRECT_DATABASE_URL=postgresql://build:build@localhost:5432/build?sslmode=disable
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Prisma client for the build, then a fresh demo database (schema + seed data)
-# baked into the image, so a `docker run` works out of the box — even from a
-# fresh GitHub clone that has no db/ directory (it is gitignored).
-RUN bunx prisma generate \
- && mkdir -p db \
- && bunx prisma db push --accept-data-loss \
- && bun prisma/seed.ts \
- && bun run build
+# Prisma client + production build (the `build` script also copies
+# .next/static and public into the standalone output for the runner).
+RUN bun run build
 
 # ---------- Stage 3: runtime ----------
 FROM node:22-bookworm-slim AS runner
-# No apt-get needed: base image already ships ca-certificates and Prisma 6
-# engines are statically linked — build works even if Debian mirrors are blocked.
 RUN groupadd -g 1001 app \
- && useradd -r -u 1001 -g app -d /app appuser
+ && useradd -r -u 1001 -g app -d /app appuser \
+ # bun + prisma CLI: the entrypoint runs `migrate deploy` and the seed at boot
+ && npm install -g bun@1 --no-fund --no-audit
 
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     HOSTNAME=0.0.0.0 \
-    PORT=3000 \
-    DATABASE_URL=file:/app/db/custom.db
+    PORT=3000
 
 # Next standalone output (server.js + traced node_modules + .next/static +
 # public — the build script already copied static & public into standalone).
 COPY --from=builder --chown=appuser:app /app/.next/standalone ./
 
-# Pristine seeded demo DB: materialized into /app/db by the entrypoint on
-# first boot, so mounted volumes start with demo data.
-COPY --from=builder /app/db /opt/seed-db
+# Prisma schema + seed + prisma CLI for `migrate deploy` at boot.
+COPY --from=builder --chown=appuser:app /app/prisma ./prisma
+COPY --from=builder --chown=appuser:app /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=appuser:app /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=appuser:app /app/node_modules/.bin ./node_modules/.bin
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+
 RUN chmod +x /usr/local/bin/entrypoint.sh \
- && mkdir -p /app/db \
- && chown -R appuser:app /app/db
+ && chown -R appuser:app /app
 
 USER appuser
 EXPOSE 3000

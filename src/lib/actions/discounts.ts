@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { db } from "@/lib/db";
+import { db, dbRetry } from "@/lib/db";
 import { getCurrentUser, rateLimit } from "@/lib/session";
 import { invalidatePublicCatalog } from "@/lib/data";
 import type { ActionResult } from "@/lib/actions/auth";
@@ -460,10 +460,13 @@ export async function resetCodeUsageAction(codeId: string): Promise<ActionResult
   const code = await db.discountCode.findUnique({ where: { id: codeId } });
   if (!code) return { ok: false, error: "کد یافت نشد." };
 
-  await db.$transaction([
-    db.discountRedemption.deleteMany({ where: { codeId } }),
-    db.discountCode.update({ where: { id: codeId }, data: { usedCount: 0 } }),
-  ]);
+  // Atomic reset, with transient-error retry (deadlock / pool timeout safe).
+  await dbRetry(() =>
+    db.$transaction([
+      db.discountRedemption.deleteMany({ where: { codeId } }),
+      db.discountCode.update({ where: { id: codeId }, data: { usedCount: 0 } }),
+    ])
+  );
   await audit(admin.email, "DISCOUNT_CODE_RESET", code.code, "صفری‌سازی شمارش استفاده");
   revalidatePath("/");
   return { ok: true, message: `شمارش استفاده از کد «${code.code}» صفر شد.` };

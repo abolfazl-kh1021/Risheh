@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { db, dbRetry } from "@/lib/db";
 import { rateLimit } from "@/lib/session";
 import { toEnDigits as toEnDigitsSafe } from "@/lib/fa";
 
@@ -86,17 +86,21 @@ export async function verifyAuthenticityAction(code: string): Promise<VerifyResu
     return { ok: false, error: "کد استعلام باید دست‌کم ۴ نویسه باشد." };
   }
 
-  // Look up by hologram code or artwork code (trusted stored records only)
-  const record = await db.authenticityRecord.findFirst({
-    where: {
-      OR: [
-        { hologramCode: { contains: normalized } },
-        { artwork: { code: normalized.replace("-H", "") } },
-        { artwork: { code: normalized } },
-      ],
-    },
-    include: { artwork: { include: { seller: true } } },
-  });
+  // Look up by hologram code or artwork code (trusted stored records only).
+  // `mode: "insensitive"` keeps the SQLite-era behaviour (case-insensitive
+  // lookup) on PostgreSQL, where LIKE is case-sensitive by default.
+  const record = await dbRetry(() =>
+    db.authenticityRecord.findFirst({
+      where: {
+        OR: [
+          { hologramCode: { contains: normalized, mode: "insensitive" } },
+          { artwork: { code: normalized.replace("-H", "") } },
+          { artwork: { code: normalized } },
+        ],
+      },
+      include: { artwork: { include: { seller: true } } },
+    })
+  );
 
   if (!record || record.status === "REJECTED") {
     // Missing/unknown code is NOT proof of counterfeit — honest, safe wording

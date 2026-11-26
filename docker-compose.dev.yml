@@ -10,12 +10,17 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: file:/app/db/custom.db
+      # Postgres 16 service below (or swap for your Neon strings).
+      DATABASE_URL: postgresql://risheh:risheh_dev_pw@db:5432/risheh?sslmode=disable&connection_limit=10
+      DIRECT_DATABASE_URL: postgresql://risheh:risheh_dev_pw@db:5432/risheh?sslmode=disable
       AUTH_SECRET: dev-secret
       NEXT_TELEMETRY_DISABLED: "1"
       # Windows/macOS bind mounts don't send file events -> use polling
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - .:/app                          # your source code (live)
       - node_modules:/app/node_modules  # Linux deps, kept inside Docker
@@ -23,10 +28,27 @@ services:
     command: >
       sh -c "npm install --no-audit --no-fund &&
              npx prisma generate &&
-             mkdir -p db &&
-             if [ ! -f db/custom.db ]; then npx prisma db push --accept-data-loss && bun prisma/seed.ts; fi &&
+             npx prisma migrate deploy &&
+             bun -e \"const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); p.user.count().then(n => { console.log(n); return p.\$\$disconnect(); });\" | grep -q '^0$' && bun prisma/seed.ts || true &&
              npx next dev -p 3000 -H 0.0.0.0"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: risheh
+      POSTGRES_PASSWORD: risheh_dev_pw
+      POSTGRES_DB: risheh
+    ports:
+      - "5432:5432"
+    volumes:
+      - risheh_dev_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U risheh -d risheh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   node_modules:
   next_cache:
+  risheh_dev_pg:

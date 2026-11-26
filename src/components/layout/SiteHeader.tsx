@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MSymbol } from "@/components/icons";
 import { faNum } from "@/lib/fa";
 import type { CategoryDTO, SessionUserDTO } from "@/lib/types";
@@ -28,6 +28,21 @@ export function SiteHeader({
   const [catMenu, setCatMenu] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
 
+  // Escape closes the drawer (accessibility; focus trap helper)
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
+
+  const submitSearch = () => {
+    setDrawerOpen(false);
+    onSearch(q);
+  };
+
   const navItems: Array<{ view: string; label: string }> = [
     { view: "home", label: "صفحه اصلی" },
     { view: "categories", label: "دسته‌بندی‌ها" },
@@ -52,15 +67,20 @@ export function SiteHeader({
             </span>
           </div>
           <div className="flex items-center gap-space-sm sm:gap-space-md shrink-0">
-            <button
-              onClick={() => onNavigate("discounts")}
-              className="flex items-center gap-1.5 hover:text-tertiary-fixed-dim transition-colors"
-              aria-label="تخفیف‌ها"
-            >
-              <MSymbol name="sell" size={17} />
-              <span className="hidden sm:inline">تخفیف‌ها</span>
-            </button>
-            <span className="text-[#23534d]">✦</span>
+            {/* تخفیف‌ها فقط برای کاربران واردشده نمایش داده می‌شود */}
+            {user && (
+              <>
+                <button
+                  onClick={() => onNavigate("discounts")}
+                  className="flex items-center gap-1.5 hover:text-tertiary-fixed-dim transition-colors"
+                  aria-label="تخفیف‌ها"
+                >
+                  <MSymbol name="sell" size={17} />
+                  <span className="hidden sm:inline">تخفیف‌ها</span>
+                </button>
+                <span className="text-[#23534d]">✦</span>
+              </>
+            )}
             <button
               onClick={() => onNavigate("favorites")}
               className="flex items-center gap-1.5 hover:text-tertiary-fixed-dim transition-colors"
@@ -346,6 +366,35 @@ export function SiteHeader({
             <MSymbol name="close" />
           </button>
         </div>
+        {/* Search first — directly above the «خانه» item, as requested */}
+        <form
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitSearch();
+          }}
+          className="mb-2"
+        >
+          <div className="relative">
+            <input
+              type="search"
+              inputMode="search"
+              className="w-full bg-surface-container-lowest rounded-full py-2.5 pr-4 pl-11 text-[14px] text-on-surface border border-outline-variant/40 focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+              placeholder="جستجوی اثر، استادکار، دسته‌بندی…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              aria-label="جستجو در منوی موبایل"
+            />
+            <button
+              type="submit"
+              aria-label="جستجو"
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
+            >
+              <MSymbol name="search" size={20} />
+            </button>
+          </div>
+        </form>
+
         {navItems.map((item) => (
           <button
             key={item.view}
@@ -354,7 +403,7 @@ export function SiteHeader({
               onNavigate(item.view);
             }}
             className={cn(
-              "flex items-center gap-space-md px-space-md py-2.5 rounded-xl transition-colors text-right",
+              "flex items-center gap-space-md px-space-md py-3 rounded-xl transition-colors text-right min-h-11",
               activeView === item.view
                 ? "bg-surface-container-high text-primary font-bold"
                 : "text-on-surface-variant hover:bg-surface-container-high hover:text-primary"
@@ -379,14 +428,17 @@ export function SiteHeader({
           </button>
         ))}
         <div className="border-t border-outline-variant/30 my-2" />
-        <DrawerLink
-          icon="sell"
-          label="تخفیف‌ها و کدهای هدیه"
-          onClick={() => {
-            setDrawerOpen(false);
-            onNavigate("discounts");
-          }}
-        />
+        {/* تخفیف‌ها فقط برای کاربران واردشده — مهمان‌ها این بخش را نمی‌بینند */}
+        {user && (
+          <DrawerLink
+            icon="sell"
+            label="تخفیف‌ها و کدهای هدیه"
+            onClick={() => {
+              setDrawerOpen(false);
+              onNavigate("discounts");
+            }}
+          />
+        )}
         <DrawerLink
           icon="favorite_border"
           label="علاقه‌مندی‌ها"
@@ -403,12 +455,30 @@ export function SiteHeader({
             onNavigate("cart");
           }}
         />
+        {user && (
+          <DrawerLink
+            icon="receipt_long"
+            label="سفارش‌ها و پیگیری"
+            onClick={() => {
+              setDrawerOpen(false);
+              onNavigate("orders");
+            }}
+          />
+        )}
         <DrawerLink
           icon="verified"
           label="استعلام اصالت"
           onClick={() => {
             setDrawerOpen(false);
             onNavigate("verify");
+          }}
+        />
+        <DrawerLink
+          icon="install_mobile"
+          label="نصب اپلیکیشن"
+          onClick={() => {
+            setDrawerOpen(false);
+            onNavigate("app");
           }}
         />
         {user ? (
@@ -421,6 +491,16 @@ export function SiteHeader({
                 onNavigate(dashboardTarget);
               }}
             />
+            {user.role === "ARTISAN" && (
+              <DrawerLink
+                icon="brush"
+                label="مدیریت آثار من"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  onNavigate("artworks");
+                }}
+              />
+            )}
             <DrawerLink
               icon="logout"
               label="خروج از حساب"
@@ -440,14 +520,17 @@ export function SiteHeader({
             }}
           />
         )}
-        <DrawerLink
-          icon="admin_panel_settings"
-          label="پیشخوان مدیریت"
-          onClick={() => {
-            setDrawerOpen(false);
-            onNavigate("admin");
-          }}
-        />
+        {/* پیشخوان مدیریت فقط برای ادمین */}
+        {user?.role === "ADMIN" && (
+          <DrawerLink
+            icon="admin_panel_settings"
+            label="پیشخوان مدیریت"
+            onClick={() => {
+              setDrawerOpen(false);
+              onNavigate("admin");
+            }}
+          />
+        )}
         <div className="mt-auto flex items-center gap-2 text-xs text-on-surface-variant pt-4 border-t border-outline-variant/30">
           <MSymbol name="support_agent" size={16} />
           پشتیبانی ۷/۷ | ۰۲۱-۱۲۳۴۵۶۷۸

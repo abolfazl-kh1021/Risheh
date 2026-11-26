@@ -2,6 +2,71 @@
 
 All notable changes. Dates are build-session-relative (single working session).
 
+## [0.13.0] — Dedicated app download page (#/app)
+
+### Added
+- `AppView` (`#/app`): a standalone download page for visitors who cannot scan the QR —
+  hero with app icon + «نصب رایگان / بدون فروشگاه اپ / حجم کم» badges, a dark-teal
+  download card (matching the homepage install card) whose PRIMARY action is the gold
+  «دانلود برنامه» button, a live QR (encodes `<origin>/#/app` so scans land exactly on
+  this page), six app-feature cards, three per-platform install-step cards
+  (Android/iOS/desktop, Persian numerals), and a 3-item FAQ accordion.
+- `lib/install-prompt.ts`: shared `beforeinstallprompt` store — the event is captured at
+  module-import time (before any component mounts) and offered to all install surfaces
+  via `useSyncExternalStore`; `consumeInstallEvent()` makes the one-shot prompt safe.
+- Entry points to the page: «صفحه دانلود اپ» link in the homepage install section,
+  «نصب اپلیکیشن» in the mobile drawer (after استعلام اصالت) and in the footer customer
+  services column, plus a «نصب اپلیکیشن» shortcut in `manifest.webmanifest`.
+
+### Changed
+- `AppInstallSection` now uses the shared install store (an early browser prompt is no
+  longer missed); download button behavior on `#/app`: native install dialog when the
+  event exists, iOS Add-to-Home-Screen guide on iPhone UA, browser-menu manual guide
+  as the click fallback otherwise.
+
+### Fixed
+- `HeroCarousel` reduced-motion check used `reducedMotion.current` on a boolean — the
+  560ms transition never disabled for users preferring reduced motion.
+
+## [0.12.0] — Launch-readiness: carousel, search 404, drawer UX, app install
+
+### Added
+- `HeroCarousel` (homepage): timed autoplay (5s, pauses on hover/focus/drag and when the
+  tab is hidden), pointer/touch drag BOTH directions (LTR track inside the RTL page),
+  clickable dots, NO arrows; five slides each promoting a different site section with its
+  own curated image (store, authenticity verification, blog, about/ateliers, app install).
+- `AppInstallSection` (homepage, `#app-install`): compact app card with icon, three key
+  features and a REAL install path — native `beforeinstallprompt` prompt on Chromium,
+  iOS Add-to-Home-Screen guide, installed-state pill, and a live QR code generated from
+  the current origin (`qrcode.react`) so scanning it on any deployment opens the site on
+  the visitor's phone and completes installation as a PWA.
+- `NotFoundView` — branded 404 page used for (a) search queries with no matches in the
+  database (CategoriesView), (b) unknown hash routes (RishehApp), (c) missing artworks
+  (ProductView); always offers browse/home actions + category suggestions.
+- Mobile drawer: search bar at the very top (directly above «خانه»), submits to
+  `categories/all?q=` and closes the drawer.
+- Drawer «سفارش‌ها و پیگیری» for signed-in users; ARTISAN gets «مدیریت آثار من».
+
+### Changed
+- Drawer is role-aware: «تخفیف‌ها و کدهای هدیه» and the desktop utility-bar «تخفیف‌ها»
+  are hidden for guests (visible after ورود/ثبت‌نام); «پیشخوان مدیریت» shows only for
+  ADMIN. `DiscountsView` itself now shows a login gate for guests (hooks-safe).
+- Drawer links: taller tap targets (min-h-11, py-3) + Escape closes the drawer.
+
+### Fixed
+- Hydration mismatch on deep links (`#/product/x`, `#/login` reload): the hash router now
+  renders the SSR-consistent «home» state first and adopts the real hash right after
+  hydration — no React hydration error, server HTML is reused.
+- Hero carousel slide backgrounds: slides were missing `relative`, so every slide's
+  absolute background stacked on the track instead of its own slide — each slide now
+  clips its own image (`relative overflow-hidden`); section slides show their image
+  clearly (no luminosity blend), hero slide keeps the original treatment.
+- `onPointerLeaveCapture` was an invalid React handler (pointerleave does not bubble) —
+  autoplay-resume now rides the plain `onPointerLeave`.
+- Inputs on phones are forced to 16px with `!important` — Tailwind cascade layers were
+  letting `text-body-sm`/`text-[14px]` utilities defeat the base rule, so Safari still
+  zoomed into search/login fields on focus.
+
 ## [0.11.0] — Installable mobile web app (PWA)
 
 ### Added

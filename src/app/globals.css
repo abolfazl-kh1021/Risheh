@@ -286,10 +286,14 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  /* iOS zooms into inputs below 16px; keep fields at 16px on phones */
+  /* iOS zooms into inputs below 16px; keep fields at 16px on phones.
+     `!important` is deliberate — Tailwind cascade layers mean plain base rules
+     would be overridden by text-* utilities like text-body-sm/text-[14px]. */
   @media (max-width: 767px) {
-    input:not([type="checkbox"]):not([type="radio"]), select, textarea {
-      font-size: 16px;
+    input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+    select,
+    textarea {
+      font-size: 16px !important;
     }
   }
   /* Keep long Persian titles/URLs from forcing horizontal scroll */
