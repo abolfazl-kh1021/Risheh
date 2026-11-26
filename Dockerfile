@@ -18,6 +18,14 @@
 #      and falls back to the openssl-1.1.x engine, which cannot load on
 #      Debian 12 (bookworm only has libssl3) → install openssl so Prisma
 #      selects the debian-openssl-3.0.x engine.
+#   3. The Prisma CLI is installed GLOBALLY in the runner (with its full
+#      dependency tree) instead of copying node_modules/prisma +
+#      node_modules/@prisma. Those copies miss the CLI's transitive deps
+#      (`effect`, `c12`, `jiti`, … live outside those folders and are not
+#      traced into the standalone output) → "Cannot find module 'effect'"
+#      when the entrypoint ran `prisma migrate deploy`. The CLI version is
+#      derived from the builder's installed prisma package, so it always
+#      matches bun.lock / the generated client.
 # =============================================================================
 
 # ---------- Stage 1: dependencies ----------
@@ -73,11 +81,21 @@ ENV NODE_ENV=production \
 # public — the build script already copied static & public into standalone).
 COPY --from=builder --chown=appuser:app /app/.next/standalone ./
 
-# Prisma schema + seed + prisma CLI for `migrate deploy` at boot.
+# Prisma schema + seed for `migrate deploy` / seed at boot.
+# (@prisma/client for the wait-loop and the seed is already inside the
+#  standalone output's traced node_modules.)
 COPY --from=builder --chown=appuser:app /app/prisma ./prisma
-COPY --from=builder --chown=appuser:app /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=appuser:app /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=appuser:app /app/node_modules/.bin ./node_modules/.bin
+
+# Prisma CLI — global install with its OWN complete dependency tree.
+# Copying node_modules/prisma + @prisma is NOT enough: @prisma/config 6.19
+# requires `effect`, and c12/jiti/… are hoisted outside those folders.
+# Version is read from the builder's installed prisma package → always in
+# sync with bun.lock and the generated client.
+COPY --from=builder /app/node_modules/prisma/package.json /tmp/prisma-pkg.json
+RUN PRISMA_VERSION="$(node -p "require('/tmp/prisma-pkg.json').version")" \
+ && npm install -g "prisma@${PRISMA_VERSION}" --no-fund --no-audit \
+ && rm -f /tmp/prisma-pkg.json
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \

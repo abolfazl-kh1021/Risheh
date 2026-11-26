@@ -8,6 +8,12 @@
 #   2. applies pending Prisma migrations (`prisma migrate deploy`),
 #   3. seeds the demo dataset exactly once (empty users table → seed),
 #   4. hands over to the CMD (Next.js standalone server).
+#
+# CHANGE: `bunx prisma migrate deploy` → `prisma migrate deploy`.
+# The Prisma CLI is now installed globally in the image (with its full
+# dependency tree — see Dockerfile). `bunx prisma` would first look into
+# ./node_modules/.bin (no longer copied) and otherwise try to DOWNLOAD
+# prisma at container boot — never rely on the network at boot time.
 set -e
 
 PGBIN_WAIT="${DB_CONNECT_TIMEOUT:-60}"
@@ -28,7 +34,7 @@ until bun -e "
 done
 
 echo "[entrypoint] applying Prisma migrations…"
-bunx prisma migrate deploy
+prisma migrate deploy
 
 # Seed once: only when the database is completely empty (fresh volume).
 SEEDED=$(bun -e "
