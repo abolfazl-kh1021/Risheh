@@ -8,7 +8,15 @@ import { verifyDemoPaymentAction } from "@/lib/actions/orders";
 import type { AppData, OrderDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Pending = { orderNumber: string; authority: string; amount: number; done?: boolean } | null;
+type Pending = {
+  orderNumber: string;
+  authority: string;
+  amount: number;
+  subtotal?: number;
+  discount?: number;
+  shipping?: number;
+  done?: boolean;
+} | null;
 
 /**
  * DEMO PAYMENT GATEWAY — clearly labeled simulation.
@@ -127,6 +135,15 @@ export function PaymentView({
 
             <div className="w-full bg-surface-bright rounded-2xl border border-outline-variant/40 p-4 mt-2 text-sm flex flex-col gap-2">
               <ResRow label="شماره سفارش:" value={resultOrder?.orderNumber ?? result!.orderNumber} mono />
+              {resultOrder && resultOrder.subtotal > 0 && (
+                <ResRow label="مجموع بهای آثار:" value={`${faPrice(resultOrder.subtotal)} تومان`} />
+              )}
+              {resultOrder && resultOrder.discount > 0 && (
+                <ResRow label="تخفیف:" value={`${faPrice(resultOrder.discount)} تومان`} />
+              )}
+              {resultOrder && resultOrder.shipping > 0 && (
+                <ResRow label="هزینه ارسال:" value={`${faPrice(resultOrder.shipping)} تومان`} />
+              )}
               <ResRow label="مبلغ:" value={`${faPrice(resultOrder?.total ?? result!.amount)} تومان`} />
               {(payment?.refNumber || result?.refNumber) && (
                 <ResRow label="شماره پیگیری:" value={payment?.refNumber ?? result!.refNumber!} mono />
@@ -239,6 +256,18 @@ export function PaymentView({
           <div className="bg-surface-container-low rounded-2xl p-4 flex flex-col gap-2 text-sm">
             <ResRow label="پذیرنده:" value="نگارخانه صنایع‌دستی ریشه" />
             <ResRow label="شماره سفارش:" value={pending.orderNumber} mono />
+            {typeof pending.subtotal === "number" && (
+              <ResRow label="مجموع بهای آثار:" value={`${faPrice(pending.subtotal)} تومان`} />
+            )}
+            {typeof pending.discount === "number" && pending.discount > 0 && (
+              <ResRow label="تخفیف کد:" value={`${faPrice(pending.discount)} تومان`} />
+            )}
+            {typeof pending.shipping === "number" && (
+              <ResRow
+                label="هزینه ارسال:"
+                value={pending.shipping === 0 ? "رایگان" : `${faPrice(pending.shipping)} تومان`}
+              />
+            )}
             <ResRow label="شناسه تراکنش:" value={pending.authority.slice(0, 18)} mono />
             <div className="border-t border-dashed border-outline-variant/40 pt-2">
               <div className="flex items-center justify-between">

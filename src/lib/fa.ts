@@ -103,6 +103,7 @@ export const DISCOUNT_STATUS_FA: Record<string, string> = {
   EXHAUSTED: "ظرفیت کد تکمیل شده است",
   USER_LIMIT: "سهمیه شما از این کد تمام شده است",
   AUDIENCE_MISMATCH: "این کد برای نقش حساب شما در نظر گرفته نشده است",
+  MIN_PRICE_NOT_MET: "مبلغ سبد خرید برای استفاده از این کد کافی نیست",
 };
 
 /** Persian wording for a discount value («۱۵٪ تخفیف» / «۳۰۰٬۰۰۰ تومان تخفیف») */

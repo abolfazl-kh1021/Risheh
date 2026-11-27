@@ -42,6 +42,29 @@ infrastructure. No compliance claims are made.
 - The demo gateway is a labeled simulation; real gateway integration must happen
   server-side (server-to-server verification), never via client redirect params.
 
+### 4.1 Payment/order concurrency rules (added 2026-11-27)
+
+Implemented in `src/lib/actions/orders.ts` and covered by DB-level assertions:
+
+- **Idempotent finalization:** the demo gateway marks the outcome via
+  `updateMany({ where: { id, status: "PENDING" } })` **inside the transaction**.
+  Exactly one concurrent call can claim the row; the loser gets
+  «این تراکنش قبلاً نهایی شده است.» Replays/double-clicks cannot double-finalize.
+- **No negative inventory:** stock decrement is guarded
+  (`updateMany({ where: { id, stock: { gte: qty } } })`); if any item fails the
+  guard the whole finalization rolls back and the buyer gets a Persian error.
+- **Atomic lifecycle:** order update, tracking event, ledger entries, discount
+  redemption and cart clear run in one `dbTx` interactive transaction.
+- **Server-side totals:** subtotal/discount/shipping/total are always recomputed
+  from the DB; the checkout discount is evaluated by `src/lib/discount-engine.ts`
+  (active window, audience, per-user limit, `minPrice`, `maxPrice` cap) — client
+  values are never trusted.
+- **Cancellation integrity:** cancelling a PAID/PREPARING order restores stock and
+  writes exact mirror-negative ledger entries for that order, keeping artisan
+  balances consistent.
+- **Collision-free order numbers:** `RSH-ORD-<ts>-<rand>` with uniqueness check.
+- **Checkout rate limit:** 20 order-creation attempts/min per session.
+
 ## 5. Injection & XSS
 
 - All DB access via Prisma parameterized queries (no raw SQL string building).

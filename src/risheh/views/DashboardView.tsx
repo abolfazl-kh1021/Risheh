@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 type Props = { data: AppData; navigate: (to: string) => void; refresh: () => void };
 
-export function DashboardView({ data, navigate }: Props) {
+export function DashboardView({ data, navigate, refresh }: Props) {
   const user = data.user;
 
   if (!user) {
@@ -52,11 +52,11 @@ export function DashboardView({ data, navigate }: Props) {
     );
   }
 
-  if (user.role === "ARTISAN") return <ArtisanDashboard data={data} navigate={navigate} />;
-  return <BuyerDashboard data={data} navigate={navigate} />;
+  if (user.role === "ARTISAN") return <ArtisanDashboard data={data} navigate={navigate} refresh={refresh} />;
+  return <BuyerDashboard data={data} navigate={navigate} refresh={refresh} />;
 }
 
-function ArtisanDashboard({ data, navigate }: Props) {
+function ArtisanDashboard({ data, navigate, refresh }: Props) {
   const user = data.user!;
   const artworks = data.myArtworks ?? [];
   const published = artworks.filter((a) => a.status === "PUBLISHED").length;
@@ -268,7 +268,7 @@ function ArtisanDashboard({ data, navigate }: Props) {
   );
 }
 
-function BuyerDashboard({ data, navigate }: Props) {
+function BuyerDashboard({ data, navigate, refresh }: Props) {
   const user = data.user!;
   const orders = data.myOrders ?? [];
   const favs = data.favorites?.length ?? 0;

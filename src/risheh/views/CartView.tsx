@@ -5,18 +5,33 @@ import { useToast } from "@/hooks/use-toast";
 import { MSymbol } from "@/components/icons";
 import { faNum, faPrice } from "@/lib/fa";
 import { removeCartItemAction, updateCartQuantityAction } from "@/lib/actions/cart";
+import { checkDiscountCodeAction } from "@/lib/actions/discounts";
 import { createOrderAction } from "@/lib/actions/orders";
 import type { AppData } from "@/lib/types";
+import type { DiscountInfo } from "@/lib/actions/discounts";
 import { cn } from "@/lib/utils";
 
 type Props = {
   data: AppData;
   navigate: (to: string) => void;
   refresh: () => void;
-  onStartPayment: (p: { orderNumber: string; authority: string; amount: number }) => void;
+  onStartPayment: (p: {
+    orderNumber: string;
+    authority: string;
+    amount: number;
+    subtotal: number;
+    discount: number;
+    shipping: number;
+  }) => void;
 };
 
-const SHIPPING_OPTIONS = [
+const SHIPPING_OPTIONS: Array<{
+  id: "free" | "courier" | "tipax";
+  label: string;
+  price: number;
+  desc: string;
+  icon: string;
+}> = [
   { id: "free", label: "ارسال رایگان بیمه‌شده ریشه", price: 0, desc: "بسته‌بندی ایمن و بیمه ۱۰۰٪ مرسوله — هدیه ریشه برای آثار فاخر", icon: "local_shipping" },
   { id: "courier", label: "پیک اختصاصی و بیمه‌شده ریشه", price: 50000, desc: "تحویل درب واحد با کادر آموزش‌دیده حمل آثار فاخر", icon: "two_wheeler" },
   { id: "tipax", label: "ارسال سریع تیپاکس سراسری", price: 75000, desc: "بسته‌بندی ضربه‌گیر ۵ لایه و هاردباکس محافظ؛ ۲ تا ۳ روز کاری", icon: "schedule" },
@@ -39,7 +54,7 @@ function parseVariant(variant: string): string[] {
 export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
-  const [shipping, setShipping] = useState("free");
+  const [shipping, setShipping] = useState<"free" | "courier" | "tipax">("free");
   const [form, setForm] = useState({
     buyerName: data.user?.name ?? "",
     buyerPhone: "",
@@ -48,12 +63,65 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
     postalCode: "",
     note: "",
   });
-  const [coupon, setCoupon] = useState("");
+  // Checkout discount (S7): checked server-side, applied authoritatively by the
+  // server at order creation — the numbers below are a display estimate only.
+  const [couponInput, setCouponInput] = useState("");
+  const [couponInfo, setCouponInfo] = useState<DiscountInfo | null>(null);
+  const [couponMsg, setCouponMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
 
   const cart = data.cart;
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.quantity, 0), [cart]);
   const shippingCost = SHIPPING_OPTIONS.find((o) => o.id === shipping)?.price ?? 0;
-  const total = subtotal + shippingCost;
+  const couponEstimate = useMemo(() => {
+    if (!couponInfo) return 0;
+    let est =
+      couponInfo.kind === "PERCENT"
+        ? Math.floor((subtotal * couponInfo.amount) / 100)
+        : couponInfo.amount;
+    if (couponInfo.kind === "PERCENT" && couponInfo.maxPrice) est = Math.min(est, couponInfo.maxPrice);
+    return Math.max(0, Math.min(est, subtotal));
+  }, [couponInfo, subtotal]);
+  const total = subtotal - couponEstimate + shippingCost;
+
+  const checkCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      setCouponMsg({ text: "ابتدا کد تخفیف را وارد کنید.", error: true });
+      return;
+    }
+    if (!data.user) {
+      setCouponMsg({ text: "برای استفاده از کد تخفیف ابتدا وارد حساب خود شوید.", error: true });
+      return;
+    }
+    setCouponBusy(true);
+    const res = await checkDiscountCodeAction(code);
+    setCouponBusy(false);
+    if (!res.ok) {
+      setCouponMsg({ text: res.error, error: true });
+      return;
+    }
+    if (res.status === "VALID" && res.info) {
+      if (res.info.minPrice && subtotal < res.info.minPrice) {
+        setCouponMsg({
+          text: `این کد برای سبد کمتر از ${faPrice(res.info.minPrice)} تومان قابل استفاده نیست.`,
+          error: true,
+        });
+        return;
+      }
+      setCouponInfo(res.info);
+      setCouponMsg({ text: `${res.message} — مبلغ تخفیف در ثبت سفارش به‌صورت قطعی در سرور محاسبه می‌شود.`, error: false });
+    } else {
+      setCouponInfo(null);
+      setCouponMsg({ text: res.message, error: true });
+    }
+  };
+
+  const clearCoupon = () => {
+    setCouponInfo(null);
+    setCouponInput("");
+    setCouponMsg(null);
+  };
 
   const setQty = async (itemId: string, qty: number) => {
     const res = await updateCartQuantityAction(itemId, qty);
@@ -71,10 +139,21 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
 
   const checkout = async () => {
     setBusy(true);
-    const res = await createOrderAction({ ...form, shippingMethod: shipping });
+    const res = await createOrderAction({
+      ...form,
+      shippingMethod: shipping,
+      discountCode: couponInfo?.code ?? "",
+    });
     setBusy(false);
     if (res.ok) {
-      onStartPayment(res);
+      onStartPayment({
+        orderNumber: res.orderNumber,
+        authority: res.authority,
+        amount: res.amount,
+        subtotal: res.subtotal,
+        discount: res.discount,
+        shipping: res.shipping,
+      });
       navigate("payment");
     } else {
       toast({ title: "ثبت سفارش ناموفق", description: res.error, variant: "destructive" });
@@ -267,24 +346,49 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
             </h2>
             <div className="flex gap-2">
               <input
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                placeholder="کد کوپن…"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && checkCoupon()}
+                placeholder="کد تخفیف (از صفحه تخفیف‌ها دریافت کنید)…"
+                aria-label="کد تخفیف"
                 className="flex-1 bg-surface-container-low rounded-xl px-3 py-2.5 text-sm border border-outline-variant/40 focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <button
                 type="button"
-                onClick={() =>
-                  toast({
-                    title: "کوپن تخفیف",
-                    description: "در حالت نمایشی، هیچ کوپن فعالی موجود نیست؛ مبلغ نهایی در سرور محاسبه می‌شود.",
-                  })
-                }
-                className="h-11 px-5 rounded-xl bg-primary-container text-on-primary hover:bg-secondary transition-colors text-xs font-bold shrink-0 shadow-sm"
+                onClick={checkCoupon}
+                disabled={couponBusy}
+                className="h-11 px-5 rounded-xl bg-primary-container text-on-primary hover:bg-secondary transition-colors text-xs font-bold shrink-0 shadow-sm disabled:opacity-60"
               >
-                ثبت کوپن
+                {couponBusy ? "در حال بررسی…" : "بررسی کد"}
               </button>
+              {couponInfo && (
+                <button
+                  type="button"
+                  onClick={clearCoupon}
+                  className="h-11 px-3 rounded-xl bg-surface-container-low text-on-surface-variant hover:text-error transition-colors text-xs font-bold shrink-0"
+                  aria-label="حذف کد تخفیف"
+                >
+                  حذف کد
+                </button>
+              )}
             </div>
+            {couponMsg && (
+              <p
+                className={cn(
+                  "mt-2 text-[11px] rounded-lg px-3 py-1.5",
+                  couponMsg.error
+                    ? "bg-error-container/40 text-on-error-container"
+                    : "bg-secondary/10 text-secondary"
+                )}
+              >
+                {couponMsg.text}
+              </p>
+            )}
+            {!data.user && (
+              <p className="mt-2 text-[11px] text-outline">
+                کدهای تخفیف حساب‌محور هستند؛ برای دریافت یا استفاده، وارد حساب خود شوید.
+              </p>
+            )}
           </section>
         </div>
 
@@ -297,6 +401,13 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
             </h2>
             <div className="flex flex-col gap-2 text-sm">
               <Row label={`مجموع بهای آثار (${faNum(cart.length)} قلم):`} value={`${faPrice(subtotal)} تومان`} />
+              {couponInfo && couponEstimate > 0 && (
+                <Row
+                  label={`تخفیف کد ${couponInfo.code}:`}
+                  value={`${faPrice(couponEstimate)} تومان تخفیف`}
+                  accent
+                />
+              )}
               <Row label="بسته‌بندی کادویی و بیمه مرسوله:" value="رایگان (هدیه ریشه)" />
               <Row label="هزینه حمل و نقل ایمن:" value={shippingCost === 0 ? "رایگان" : `${faPrice(shippingCost)} تومان`} />
               <div className="border-t border-dashed border-outline-variant/50 my-1" />
@@ -355,11 +466,11 @@ function Step({ icon, label, sub, active }: { icon: string; label: string; sub: 
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="flex items-center justify-between text-on-surface-variant">
       <span>{label}</span>
-      <span className="font-bold text-on-surface">{value}</span>
+      <span className={cn("font-bold", accent ? "text-secondary" : "text-on-surface")}>{value}</span>
     </div>
   );
 }

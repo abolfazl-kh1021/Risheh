@@ -94,6 +94,7 @@ export function mapOrder(o: Prisma.OrderGetPayload<{
     postalCode: o.postalCode,
     note: o.note,
     subtotal: o.subtotal,
+    discount: o.discount,
     shipping: o.shipping,
     total: o.total,
     status: o.status,
@@ -330,7 +331,7 @@ export async function loadAppData(): Promise<AppData> {
   }
 
   if (user && user.role === "ADMIN") {
-    const [members, plansRaw, txns, audit, messages, labQueue, userCount, artworkCount, orderCount, pendingMembers, pendingArtworks, allSettlements] =
+    const [members, plansRaw, txns, audit, messages, labQueue, userCount, artworkCount, orderCount, pendingMembers, pendingArtworks, allSettlements, shopOrders] =
       await Promise.all([
         db.memberRequest.findMany({ include: { user: true }, orderBy: { createdAt: "desc" } }),
         db.subscriptionPlan.findMany(),
@@ -348,6 +349,12 @@ export async function loadAppData(): Promise<AppData> {
         db.memberRequest.count({ where: { status: "PENDING" } }),
         db.artwork.count({ where: { status: "PENDING" } }),
         db.settlementRequest.findMany({ include: { seller: true }, orderBy: { createdAt: "desc" }, take: 30 }),
+        // Admin also operates the shop-side order pipeline (M7): all active orders.
+        db.order.findMany({
+          where: { status: { in: ["PAID", "PREPARING", "SHIPPED", "DELIVERED"] } },
+          include: { items: true, tracking: true, payments: true },
+          orderBy: { createdAt: "desc" },
+        }),
       ]);
 
     // Revenue aggregated in the DB instead of loading every order into memory.
@@ -357,6 +364,7 @@ export async function loadAppData(): Promise<AppData> {
     });
     const revenue = revenueAgg._sum.total ?? 0;
 
+    data.artisanOrders = shopOrders.map(mapOrder);
     data.admin = {
       memberRequests: members.map((m) => ({
         id: m.id,

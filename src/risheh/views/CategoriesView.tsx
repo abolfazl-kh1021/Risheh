@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MSymbol } from "@/components/icons";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -18,7 +18,7 @@ type Shared = {
   route: { view: string; param?: string; query: URLSearchParams };
 };
 
-const HERO_COPY: Record<string, { kicker: string; tag: string; title: string; desc: string; stat1: string; stat1v: string; stat2: string; stat2v: string }> = {
+const HERO_COPY: Record<string, { kicker: string; tag: string; title: string; desc: string; stat1: string; stat2: string }> = {
   all: {
     kicker: "گنجینه هنر و صنایع دستی اصیل ایران",
     tag: "شناسنامه رسمی اصالت",
@@ -104,6 +104,11 @@ export function CategoriesView({ data, navigate, onAddToCart, onToggleFavorite, 
   const param = route.param ?? "all";
   const q = route.query.get("q") ?? "";
   const [search, setSearch] = useState(q);
+  // Keep the input in sync with external searches (header search navigates to
+  // ?q=… while this view is already mounted — useState alone would miss it).
+  useEffect(() => {
+    setSearch(q);
+  }, [q]);
   // Filtering recomputes only after typing settles (300ms) — the input stays snappy.
   const debouncedSearch = useDebouncedValue(search, 300);
   const [sort, setSort] = useState("newest");

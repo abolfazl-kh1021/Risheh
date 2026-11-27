@@ -225,7 +225,8 @@ model Order {
   postalCode   String?
   note         String?
   subtotal     Int      // server-computed, Toman
-  discount     Int      @default(0)
+  discount     Int      @default(0) // server-computed from a validated DiscountCode (S7)
+  discountCodeId String? // applied discount code (nullable, SetNull) — additive migration 20261127190000
   shipping     Int      @default(0)
   total        Int      // server-computed
   status       String   @default("PENDING_PAYMENT") // PENDING_PAYMENT | PAID | PREPARING | SHIPPED | DELIVERED | CANCELLED | PAYMENT_FAILED
@@ -235,6 +236,7 @@ model Order {
   items        OrderItem[]
   payments     PaymentAttempt[]
   tracking     TrackingEvent[]
+  discountCode DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
 
   @@index([buyerId])
   @@map("orders")
@@ -438,6 +440,7 @@ model DiscountCode {
   createdAt    DateTime  @default(now())
 
   redemptions DiscountRedemption[]
+  orders      Order[]
 
   @@index([campaignId])
   @@map("discount_codes")

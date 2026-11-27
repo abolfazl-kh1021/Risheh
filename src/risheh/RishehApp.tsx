@@ -86,6 +86,9 @@ export function RishehApp({ data: rawData }: { data: AppData }) {
     orderNumber: string;
     authority: string;
     amount: number;
+    subtotal?: number;
+    discount?: number;
+    shipping?: number;
   } | null>(null);
   // Server-verified payment outcome held in memory (the server action response —
   // never a client-crafted URL parameter).
@@ -110,7 +113,14 @@ export function RishehApp({ data: rawData }: { data: AppData }) {
   const view = route.view;
 
   const handleStartPayment = useCallback(
-    (p: { orderNumber: string; authority: string; amount: number }) => {
+    (p: {
+      orderNumber: string;
+      authority: string;
+      amount: number;
+      subtotal?: number;
+      discount?: number;
+      shipping?: number;
+    }) => {
       setPaymentResult(null);
       setPendingPayment(p);
     },
@@ -209,7 +219,8 @@ export function RishehApp({ data: rawData }: { data: AppData }) {
       case "categories":
         return <CategoriesView {...shared} />;
       case "product":
-        return <ProductView {...shared} artworkId={route.param ?? ""} />;
+        // key resets gallery/tab/qty state when switching between artworks
+        return <ProductView key={route.param ?? ""} {...shared} artworkId={route.param ?? ""} />;
       case "login":
         return <LoginView {...shared} />;
       case "cart":

@@ -241,7 +241,9 @@ export function LoginView({ navigate, refresh }: Props) {
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="۰۹۱۲۱۸۸۳۰۴۰"
                     aria-label="شماره تلفن همراه"
-                    className="bg-surface-bright border border-outline-variant/50 rounded-xl px-3 py-2.5 text-sm"
+                    disabled
+                    title="غیرفعال — سرویس پیامک پیکربندی نشده است"
+                    className="bg-surface-bright border border-outline-variant/50 rounded-xl px-3 py-2.5 text-sm opacity-60 cursor-not-allowed"
                   />
                 </div>
               ) : (

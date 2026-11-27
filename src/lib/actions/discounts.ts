@@ -35,7 +35,7 @@ async function requireAdmin() {
 
 export type DiscountCheckResult =
   | { ok: true; status: "VALID"; message: string; info: DiscountInfo }
-  | { ok: true; status: DiscountStatus; message: string }
+  | { ok: true; status: Exclude<DiscountStatus, "VALID">; message: string }
   | { ok: false; error: string };
 
 export type DiscountInfo = {
@@ -122,7 +122,7 @@ export async function checkDiscountCodeAction(rawCode: string): Promise<Discount
 
   const res = await evaluateCode(trimmed, user?.id ?? null, user?.role ?? null);
   if (res.status !== "VALID" || !res.code) {
-    return { ok: true, status: res.status, message: res.message };
+    return { ok: true, status: res.status as Exclude<DiscountStatus, "VALID">, message: res.message };
   }
 
   const info: DiscountInfo = {

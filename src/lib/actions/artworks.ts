@@ -16,7 +16,12 @@ const artworkSchema = z.object({
   price: z
     .string()
     .transform((v) => toEnDigits(v).replace(/[,\s]/g, ""))
-    .pipe(z.coerce.number().int("قیمت باید عدد صحیح باشد").min(10000, "حداقل قیمت ۱۰,۰۰۰ تومان است").max(10_000_000_000)),
+    .transform((v) => Number(v))
+    .refine(
+      (n) => Number.isInteger(n) && n >= 10000,
+      "قیمت باید عدد صحیح و دست‌کم ۱۰,۰۰۰ تومان باشد"
+    )
+    .refine((n) => n <= 10_000_000_000, "حداکثر قیمت مجاز ۱۰,۰۰۰,۰۰۰,۰۰۰ تومان است"),
   materials: z.string().max(200).optional().or(z.literal("")),
   dimensions: z.string().max(120).optional().or(z.literal("")),
   province: z.string().max(40).optional().or(z.literal("")),

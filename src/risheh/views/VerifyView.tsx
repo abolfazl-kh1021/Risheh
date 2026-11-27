@@ -48,16 +48,17 @@ export function VerifyView() {
         <div className="max-w-7xl mx-auto px-gutter py-space-lg">
           <div className="flex items-center gap-2 text-tertiary-fixed-dim text-xs font-bold mb-2">
             <MSymbol name="verified" size={16} />
-            سامانه پایش تبارنامه و گواهی اصالت ریشه
+            سامانه استعلام شناسنامه اصالت ریشه
             <span className="text-on-primary-container">✦</span>
-            <span className="text-on-primary-container font-medium">نسخه امنیتی ۲.۴</span>
+            <span className="text-on-primary-container font-medium">حالت نمایشی — رکورد داخلی سامانه</span>
           </div>
           <h1 className="font-headline-xl !text-[24px] !leading-[40px] sm:!text-[30px] sm:!leading-[46px] font-extrabold mb-2">
             استعلام برخط شناسنامه اصالت و ردگیری تبار اثر
           </h1>
           <p className="text-sm text-on-primary-container max-w-3xl leading-relaxed">
-            هر شاهکار دست‌ساز ریشه دارای شماره سریال یکتا، پلاک شناسنامه فیزیکی هولوگرام‌دار، پرونده کارشناسی
-            موزه‌ای و زنجیره تبار دیجیتال است.
+            آثار منتشرشده ریشه شناسنامه‌ای با کد یکتا در پایگاه‌داده همین سامانه دارند؛ کد را وارد کنید و وضعیت
+            ثبت‌شده آن را ببینید. این استعلام جست‌وجو در رکوردهای داخلی ریشه است، نه گواهی یک آزمایشگاه یا مرجع
+            مستقل بیرونی.
           </p>
         </div>
       </section>
@@ -104,14 +105,14 @@ export function VerifyView() {
               <MSymbol name="qr_code_scanner" size={20} />
             </button>
           </div>
-          <div className="flex items-center justify-between mt-3 text-[11px] text-outline">
+          <div className="flex items-center justify-between flex-wrap gap-x-4 gap-y-1.5 mt-3 text-[11px] text-outline">
             <span className="flex items-center gap-1">
-              <MSymbol name="verified_user" size={13} />
-              پایگاه اطلاعاتی پیوسته به اتحادیه صنایع دستی
+              <MSymbol name="storage" size={13} />
+              منبع نتیجه: رکوردهای ثبت‌شده در پایگاه‌داده ریشه
             </span>
             <span className="flex items-center gap-1">
               <MSymbol name="history_edu" size={13} />
-              آخرین بروزرسانی دفتر اسناد: امروز
+              نتیجه به‌روز بودن رکورد را تضمین می‌کند، نه اصالت فیزیکی اثر را
             </span>
           </div>
         </div>
@@ -120,6 +121,15 @@ export function VerifyView() {
       {/* ===== Result ===== */}
       {searched && result && (
         <section className="max-w-3xl mx-auto px-gutter mt-space-lg">
+          {/* Honest-scope notice (M10): this is a DB lookup, not an external lab certificate */}
+          <div className="mb-4 rounded-2xl bg-tertiary-fixed/30 border border-tertiary-fixed-dim/60 p-3 flex items-start gap-2 text-[11px] text-on-tertiary-fixed-variant leading-relaxed">
+            <MSymbol name="info" size={16} className="shrink-0 mt-0.5" />
+            <span>
+              این صفحه صرفاً وضعیت شناسنامه‌های ثبت‌شده توسط مدیریت ریشه در پایگاه‌داده همین وب‌سایت را نمایش
+              می‌دهد. این نتیجه گواهی آزمایشگاه مستقل، مرجع دولتی یا اتحادیه نیست و جایگزین کارشناسی حضوری اثر
+              نمی‌شود. (حالت نمایشی پروژه)
+            </span>
+          </div>
           {result.state === "VERIFIED" && (
             <div className="flex flex-col gap-4">
               {/* Certificate */}
@@ -127,10 +137,10 @@ export function VerifyView() {
                 <div className="bg-tertiary-fixed/40 px-5 py-3 flex items-center justify-between border-b border-tertiary-fixed-dim/50">
                   <div className="flex items-center gap-2 text-on-tertiary-fixed-variant">
                     <MSymbol name="spa" size={20} />
-                    <span className="text-xs font-bold tracking-wide">REPUBLIC OF IRAN HERITAGE ARCHIVE</span>
+                    <span className="text-xs font-bold tracking-wide">RISHEH ARTISAN VERIFICATION ARCHIVE — DEMO</span>
                   </div>
                   <span className="text-xs font-black text-on-tertiary-container">
-                    شناسنامه و اعتبارنامه ملی اثر فاخر
+                    شناسنامه اصالت ثبت‌شده در سامانه ریشه
                   </span>
                 </div>
                 <div className="p-5">
@@ -154,12 +164,12 @@ export function VerifyView() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm font-black text-secondary">تایید اصالت</p>
+                      <p className="text-sm font-black text-secondary">تایید اصالت (بر اساس رکورد داخلی)</p>
                       <p className="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">
-                        {result.message} تطابق کامل با پرونده ملی اسناد موزه‌ای — امضای ارشد آزمایشگاه مواد و بافت.
+                        {result.message}
                       </p>
                     </div>
-                    <span className="mr-auto text-[10px] font-black text-secondary/70 hidden md:block">AUTHENTIC</span>
+                    <span className="mr-auto text-[10px] font-black text-secondary/70 hidden md:block">VERIFIED RECORD</span>
                   </div>
                 </div>
               </div>
@@ -169,10 +179,10 @@ export function VerifyView() {
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                   <h3 className="font-headline-md text-primary font-bold flex items-center gap-2">
                     <MSymbol name="biotech" className="text-secondary" />
-                    گزارش رسمی سنجشگاه ریشه — کارنامه آزمون‌ها
+                    کارنامه ثبت‌شده اثر در سامانه ریشه
                   </h3>
                   <span className="text-xs font-bold text-secondary bg-secondary/10 rounded-full px-3 py-1">
-                    درجه کیفی نهایی: ممتاز A+ (موزه‌ای)
+                    وضعیت آزمایشگاه (نمایشی): {LAB_STATUS_FA[result.labStatus ?? "ISSUED"] ?? result.labStatus}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -196,14 +206,15 @@ export function VerifyView() {
                 )}
               </div>
 
-              {/* Timeline (sample lineage) */}
+              {/* Timeline (illustrative sample, not per-artwork data) */}
               <div className="rounded-2xl elevation-1 bg-surface-container-lowest p-5 border border-outline-variant/40">
                 <h3 className="font-headline-md text-primary font-bold flex items-center gap-2 mb-1">
                   <MSymbol name="timeline" className="text-secondary" />
-                  شجره‌نامه و سال‌شمار خلق شاهکار
+                  گاه‌شمار نمونه خلق یک اثر (نمایشی)
                 </h3>
                 <p className="text-[11px] text-outline mb-4">
-                  سفر پیدایش اثر از تار و پود تا گنجینه ریشه (نمونه گاه‌شمار استاندارد آثار موزه‌ای).
+                  این گاه‌شمار صرفاً یک نمونه نمایشی ثابت برای آشنایی با فرایند است و سابقه ثبت‌شده همین اثر
+                  نیست.
                 </p>
                 <ol className="relative border-r-2 border-tertiary-fixed-dim/60 mr-3 flex flex-col gap-4">
                   {SAMPLE_TIMELINE.map((t, i) => (
@@ -219,12 +230,16 @@ export function VerifyView() {
                 </ol>
               </div>
 
-              {/* Security guide */}
+              {/* Security guide — planned physical-plate concept, clearly demo */}
               <div className="rounded-2xl elevation-1 bg-surface-container-lowest p-5 border border-outline-variant/40">
-                <h3 className="font-headline-md text-primary font-bold flex items-center gap-2 mb-3">
+                <h3 className="font-headline-md text-primary font-bold flex items-center gap-2 mb-1">
                   <MSymbol name="lock" className="text-secondary" />
-                  امنیت فیزیکی غیرقابل تکثیر — راهنمای تشخیص عناصر امنیتی
+                  طرح پلاک فیزیکی شناسنامه (ایده نمایشی)
                 </h3>
+                <p className="text-[11px] text-outline mb-3">
+                  موارد زیر توصیف طراحیِ پیشنهادی برای پلاک فیزیکی در نسخه‌های آتی است و در نسخه فعلی وب‌سایت
+                  پیاده‌سازی فیزیکی ندارد.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {SECURITY_GUIDE.map((s) => (
                     <div key={s.title} className="rounded-xl bg-surface-container-low p-3 border border-outline-variant/30">
@@ -282,9 +297,9 @@ export function VerifyView() {
               راهنمای استعلام
             </h3>
             <ul className="text-xs text-on-surface-variant leading-relaxed flex flex-col gap-1.5 list-disc pr-5">
-              <li>کد شناسه اثر روی پلاک برنجی متصل به اثر یا در شناسنامه فیزیکی درج شده است.</li>
+              <li>نتیجه استعلام از رکوردهای ثبت‌شده در پایگاه‌داده ریشه خوانده می‌شود؛ نه از آزمایشگاه یا مرجع بیرونی.</li>
               <li>نتیجه «یافت نشد» به معنای تقلبی بودن اثر نیست؛ اثر ممکن است در زنجیره تایید ریشه ثبت نشده باشد.</li>
-              <li>برای کارشناسی حضوری و مطالبه اصالت با پشتیبانی ریشه تماس بگیرید: ۰۲۱-۱۲۳۴۵۶۷۸</li>
+              <li>برای بررسی حضوری و مطالبه اصالت با پشتیبانی ریشه تماس بگیرید: ۰۲۱-۱۲۳۴۵۶۷۸</li>
             </ul>
           </div>
         </section>

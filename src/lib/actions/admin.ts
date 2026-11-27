@@ -30,7 +30,10 @@ export async function decideMemberRequestAction(
   const admin = await requireAdmin();
   if (!admin) return { ok: false, error: "این عملیات نیازمند دسترسی مدیریت است." };
 
-  const request = await db.memberRequest.findUnique({ where: { id: requestId } });
+  const request = await db.memberRequest.findUnique({
+    where: { id: requestId },
+    include: { user: { select: { email: true } } },
+  });
   if (!request) return { ok: false, error: "درخواست یافت نشد." };
   if (request.status !== "PENDING") return { ok: false, error: "این درخواست قبلاً بررسی شده است." };
 
@@ -44,7 +47,7 @@ export async function decideMemberRequestAction(
       data: { verified: true, planId: request.planId },
     });
   }
-  await audit(admin.email, `MEMBER_${decision}`, request.workshop, request.userEmail);
+  await audit(admin.email, `MEMBER_${decision}`, request.workshop, request.user.email);
   revalidatePath("/");
   return { ok: true, message: decision === "APPROVED" ? "عضویت استادکار تایید شد." : "درخواست عضویت رد شد." };
 }

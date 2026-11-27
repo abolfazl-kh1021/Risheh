@@ -3,6 +3,18 @@
 All notable changes. Dates are build-session-relative (single working session).
 
 ## [0.13.0] — Dedicated app download page (#/app)
+## [Unreleased] — Week 13 readiness (2026-11-27)
+- fix(orders): atomic, idempotent payment finalization; guarded stock decrement in a
+  single transaction; cancel-after-pay restores stock and reverses ledger entries.
+- feat(checkout): server-authoritative discount codes at checkout (fixed + percent,
+  caps, audience, per-user limit); `orders.discountCodeId` additive migration;
+  cart coupon box now performs a real server check.
+- fix(ledger): SALE/COMMISSION written from post-discount net shares (10% exact).
+- fix(admin): ADMIN role now loads the shop-orders pipeline (was artisan-only).
+- fix(ui): categories view syncs with header search; product view state resets per artwork;
+  verify-page footer chips wrap at narrow widths; OTP tab input disabled (out of scope).
+- docs(verifiy): honest M10 wording — in-app records, not an external lab certificate.
+- chore(ts): 17 latent type errors fixed; tsconfig excludes examples/mini-services/scripts.
 
 ### Added
 - `AppView` (`#/app`): a standalone download page for visitors who cannot scan the QR —

@@ -72,7 +72,7 @@ export type VerifyResult =
       labStatus?: string;
       tests?: Array<{ name: string; result: string; detail: string }>;
       issuedAt?: string | null;
-      notes?: string | null;
+      notes?: string;
       message: string;
     }
   | { ok: false; error: string };
@@ -121,7 +121,7 @@ export async function verifyAuthenticityAction(code: string): Promise<VerifyResu
       hologramCode: record.hologramCode,
       labStatus: record.labStatus,
       message:
-        "این اثر در فرایند تایید اصالت ریشه است؛ شناسنامه آن هنوز صادر نشده و نتیجه قطعی در دسترس نیست.",
+        "این اثر در فرایند تایید اصالت ریشه است؛ شناسنامه آن هنوز صادر نشده و نتیجه قطعی در دسترس نیست. (نتیجه صرفاً از رکورد داخلی همین سامانه خوانده می‌شود.)",
     };
   }
 
@@ -131,13 +131,14 @@ export async function verifyAuthenticityAction(code: string): Promise<VerifyResu
     title: record.artwork.title,
     code: record.artwork.code,
     sellerName: record.artwork.seller.name,
-    province: record.artwork.province,
+    province: record.artwork.province ?? undefined,
     hologramCode: record.hologramCode,
     status: record.status,
     labStatus: record.labStatus,
     tests: JSON.parse(record.tests || "[]"),
     issuedAt: record.issuedAt?.toISOString() ?? null,
-    notes: record.notes,
-    message: "اصالت این اثر با استناد به شناسنامه ثبت‌شده در آزمایشگاه مرکزی ریشه تایید می‌شود.",
+    notes: record.notes ?? undefined,
+    message:
+      "این نتیجه از شناسنامه ثبت‌شده در پایگاه‌داده ریشه بازیابی شده است؛ رکورد داخلی همین سامانه است و به‌معنای گواهی آزمایشگاه یا مرجع مستقل بیرونی نیست.",
   };
 }

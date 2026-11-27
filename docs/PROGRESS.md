@@ -57,3 +57,27 @@ prepared, pending user actions.
 2. Create the GitHub repo, push (commands in `docs/DEPLOYMENT.md` §2), deploy to
    Vercel with `AUTH_SECRET` + production `DATABASE_URL`, smoke-test the deployed URL.
 3. Optional upgrades: Postgres migration, Vitest/Playwright suites, route split for SEO.
+
+## Week 13 readiness pass — 2026-11-27
+
+- Typecheck restored to **0 errors** (17 latent errors fixed; `examples/`+`mini-services/`
+  excluded from typecheck). ESLint 0. Production build clean.
+- Checkout discounts are now **real and server-authoritative** (S7 complete): fixed and
+  percent codes validated via `discount-engine.ts`, stored on `orders.discountCodeId`
+  (additive migration `20261127175458_order_discount_code`), ledger uses net shares so
+  the 10% commission stays exact. Cart coupon box wired to the real checker (fake
+  «هیچ کوپن فعالی موجود نیست» toast removed).
+- Payment finalization made atomic/idempotent (claim inside tx), stock decrement guarded
+  (no negative inventory), cancellation restores stock + reverses ledger entries.
+- Order numbers collision-free; checkout rate-limited.
+- ADMIN now sees the shop-orders pipeline (was ARTISAN-only) — can run the full
+  PAID→DELIVERED lifecycle and cancel.
+- Authenticity lookup (M10) honestly reworded: in-app records, not an external
+  lab/certification body; fictional external-affiliation claims removed.
+- Categories view syncs with header search (?q=) while mounted; product view state resets
+  between artworks (gallery tab/qty).
+- Registration OTP tab disabled-input + honest message (SMS out of scope).
+- Verified journeys: buyer (3 payment outcomes), artisan (draft/edit/submit, settlement),
+  admin (approve, lab pipeline, publish, support, settlement PAID, audit) — all on a
+  production build against a seeded local Postgres. Responsive overflow checks clean at
+  8 widths.

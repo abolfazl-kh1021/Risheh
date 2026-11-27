@@ -126,6 +126,7 @@ export type OrderDTO = {
   postalCode?: string | null;
   note?: string | null;
   subtotal: number;
+  discount: number;
   shipping: number;
   total: number;
   status: string;

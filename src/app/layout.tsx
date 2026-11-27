@@ -51,20 +51,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Preload the two Vazirmatn subsets actually used by fa/RTL UI (no FOUT).
+  preload("/assets/fonts/b37f9008d6c9.woff2", {
+    as: "font",
+    type: "font/woff2",
+    crossOrigin: "anonymous",
+  });
+  preload("/assets/fonts/f50a38034db2.woff2", {
+    as: "font",
+    type: "font/woff2",
+    crossOrigin: "anonymous",
+  });
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
-        {/* Preload the two Vazirmatn subsets actually used by fa/RTL UI (no FOUT). */}
-        {preload("/assets/fonts/b37f9008d6c9.woff2", {
-          as: "font",
-          type: "font/woff2",
-          crossOrigin: "anonymous",
-        })}
-        {preload("/assets/fonts/f50a38034db2.woff2", {
-          as: "font",
-          type: "font/woff2",
-          crossOrigin: "anonymous",
-        })}
         {children}
         <Toaster />
         <WebVitals />
