@@ -1,123 +1,62 @@
-# SECURITY.md
+# SECURITY.md — مدل امنیتی ریشه
 
-**Build status: demo/development.** The controls below are implemented and verified;
-the explicitly-marked gaps are the ones that require real providers or production
-infrastructure. No compliance claims are made.
+**Last updated:** ۱۴۰۵/۰۹/۰۸ — پس از فاز حفاظت (Phase 1)
 
-## 1. Authentication (demo adapter — clearly labeled)
+## ۱) مرزهای اعتماد
 
-- Passwords hashed with **scrypt** (64-byte, per-user random salt) via node:crypto;
-  plaintext never stored or logged. `verifyPassword` uses `timingSafeEqual`.
-- Sessions: 256-bit random tokens stored server-side (`Session` table); cookie
-  `risheh_session` is **httpOnly, SameSite=Lax, Secure in production**, signed with
-  HMAC-SHA256 (`AUTH_SECRET`) so a forged cookie value fails validation.
-- Expiry: 14 days; expired sessions are deleted on read.
-- Demo credentials (`risheh1403`) are published in the UI — acceptable **only**
-  because this is a labeled demo build; rotate/remove for production.
-- **Gap:** no password reset (no email provider), no MFA, no NextAuth — documented.
+- **اعتبارسنجی و مجوز فقط سمت سرور:** قیمت، جمع، موجودی، تخفیف، سقف پلن، نقش و
+  مالکیت در `src/lib/actions/*` و loaderهای `data.ts`. کلاینت هرگز نتیجه‌ی
+  پرداخت، نقش یا مبالغ را تایید نمی‌کند.
+- **middleware فقط UX است:** گارد نقش در `src/middleware.ts` re-validation
+  اکشن‌ها را جایگزین نمی‌کند.
+- **پارامتر query هرگز مرجع پرداخت نیست:** `/api/payment/callback` فقط با
+  `provider.verify` نتیجه را تعیین می‌کند؛ نتیجه‌ی درگاه دمو در
+  `PaymentAttempt.demoOutcome` روی سرور ذخیره شده است.
 
-## 2. Authorization (server-enforced)
+## ۲) احراز هویت
 
-- Every Server Action calls `getCurrentUser()` and re-checks role/ownership:
-  - Artwork create/update/status/lab requests: `sellerId === user.id || ADMIN`.
-  - Order status transitions: seller of the order items or ADMIN, plus a validated
-    transition map (`ALLOWED_TRANSITIONS`) — invalid transitions are rejected.
-  - Settlements: artisan-only; amount validated against ledger balance server-side.
-  - Admin actions (`decideMemberRequestAction`, `decideArtworkVerificationAction`,
-    `updateLabStatusAction`, `decideSettlementAction`, `markMessageHandledAction`):
-    `requireAdmin()` gate.
-- Client-visible roles/badges are cosmetic only.
+- scrypt نسخه‌دار (`s1:16384:8:1:salt:hash`)، نشست‌های ۲۵۶بیتی تصادفی در Postgres
+  با کوکی httpOnly/SameSite=Lax/Secure (امضای HMAC با AUTH_SECRET).
+- `AUTH_SECRET` اجباری ≥۳۲ نویسه؛ بدون آن بوت fail می‌شود (بدون fallback).
+- قفل موقت ورود: ۲۰/۱۰دقیقه per-IP و ۸/۱۵دقیقه per-IP+account؛ پیام یکسان.
+- پیام ثبت‌نام بدون افشای وجود ایمیل؛ ثبت‌نام فقط BUYER/ARTISAN —
+  **ADMIN فقط provision** (`admin:create`)؛ تست integration این را قفل می‌کند.
+- تغییر گذرواژه با گذرواژه فعلی + ابطال سایر نشست‌ها؛ صفحه‌ی نشست‌های فعال
+  (IP/UA/زمان) + خروج از همه‌ی دستگاه‌ها.
 
-## 3. Input validation
+## ۳) Rate limiting
 
-- All actions validate input with **Zod** (lengths, regexes, Persian-digit
-  normalization for phone/IBAN/codes) and return structured errors.
-- Order totals: recomputed server-side; client totals ignored. Stock checked at
-  add-to-cart, order creation, and payment success (decrement).
-- Payment verification is idempotent (`authority` unique; PENDING-only transitions).
+Postgres-backed (`rate_limit_buckets`) با UPSERT اتمیک و کلید `action|ip` —
+serverless-safe (نسخه‌ی in-memory با کلید سراسری حذف شد). ورود، ثبت‌نام، پرداخت،
+استعلام، آپلود، تسویه، مرجوعی و پیگیری همگی محدود و purge در cron.
 
-## 4. Payment data
+## ۴) هدرها
 
-- **No card numbers, CVV, or banking credentials are collected or stored anywhere.**
-- The demo gateway is a labeled simulation; real gateway integration must happen
-  server-side (server-to-server verification), never via client redirect params.
+CSP (default-src self؛ script-src self+inline برای Next/JSON-LD)، HSTS
+(2 سال preload)، X-Frame-Options DENY، nosniff، Referrer-Policy
+strict-origin-when-cross-origin، Permissions-Policy (دوربین/میکروفون/جی‌پی‌اس
+بسته). `poweredByHeader: false`.
 
-### 4.1 Payment/order concurrency rules (added 2026-11-27)
+## ۵) آپلود تصویر (S1)
 
-Implemented in `src/lib/actions/orders.ts` and covered by DB-level assertions:
+magic bytes (نه پسوند) → سقف ۵MB → بازکدگذاری `sharp` به WebP (حذف EXIF/GPS) →
+نام تصادفی → StorageProvider (local یا Vercel Blob). مسیرهای تصویر آثار با
+`normalizeImagePath` سفارشی‌سازی می‌شوند: بدون `..`، بدون URL خارجی، فقط
+`/assets/img/` و `/uploads/`.
 
-- **Idempotent finalization:** the demo gateway marks the outcome via
-  `updateMany({ where: { id, status: "PENDING" } })` **inside the transaction**.
-  Exactly one concurrent call can claim the row; the loser gets
-  «این تراکنش قبلاً نهایی شده است.» Replays/double-clicks cannot double-finalize.
-- **No negative inventory:** stock decrement is guarded
-  (`updateMany({ where: { id, stock: { gte: qty } } })`); if any item fails the
-  guard the whole finalization rolls back and the buyer gets a Persian error.
-- **Atomic lifecycle:** order update, tracking event, ledger entries, discount
-  redemption and cart clear run in one `dbTx` interactive transaction.
-- **Server-side totals:** subtotal/discount/shipping/total are always recomputed
-  from the DB; the checkout discount is evaluated by `src/lib/discount-engine.ts`
-  (active window, audience, per-user limit, `minPrice`, `maxPrice` cap) — client
-  values are never trusted.
-- **Cancellation integrity:** cancelling a PAID/PREPARING order restores stock and
-  writes exact mirror-negative ledger entries for that order, keeping artisan
-  balances consistent.
-- **Collision-free order numbers:** `RSH-ORD-<ts>-<rand>` with uniqueness check.
-- **Checkout rate limit:** 20 order-creation attempts/min per session.
+## ۶) مسیرهای پرداخت/مالی
 
-## 5. Injection & XSS
+- claim اتمیک `PENDING→…` هرگز اجازه‌ی دوبرابرِ نهایی‌سازی نمی‌دهد (M6).
+- کاهش موجودی گارد‌دار داخل تراکنش؛ موجودی منفی ناممکن.
+- مصرف تخفیف با گارد `usedCount < maxUses` داخل تراکنش.
+- `PAID` تسویه اتمیک با بازبینی مانده داخل تراکنش — واریز دوباره ناممکن.
+- `PaymentEvent` برای هر REQUESTED/CALLBACK/VERIFY_* — لاگ غیرقابل‌ویرایش نتیجه.
 
-- All DB access via Prisma parameterized queries (no raw SQL string building).
-- React escapes output by default; no `dangerouslySetInnerHTML` anywhere in the app.
-- User-entered strings rendered as text nodes only.
+## ۷) نکته‌های ریسک معلوم
 
-## 6. Uploads
-
-- **File uploads are not implemented** (no storage provider in the sandbox). The
-  artwork editor uses a curated local image library restricted to `/assets/img/…`
-  paths (enforced in the action: non-matching paths rejected). Real uploads require
-  type/size/content validation + malware scanning + provider config — documented in
-  DEPLOYMENT.md.
-
-## 7. Rate limiting / abuse
-
-- In-memory fixed-window limiter (`rateLimit`): login 15/min, register 10/min,
-  contact 5/5min, newsletter 10/5min, verification 30/min, settlements 5/min per user.
-- **Gap:** in-memory limiter resets per instance; use Redis/persistent store for prod.
-- Contact form stores messages for admin triage (no auto-email is claimed).
-
-## 8. Secrets
-
-- `.env` git-ignored; `.env.example` documents `AUTH_SECRET` + placeholder provider
-  keys. No secret values committed. Demo `AUTH_SECRET` fallback exists only for the
-  sandbox and is documented as "do not use in production".
-
-## 9. Logging & privacy
-
-- Logs (dev) contain Prisma query traces — no user passwords (hashes only) and no
-  payment credentials (none exist).
-- Contact messages keep name/email/message (user-provided), visible only to ADMIN.
-- No analytics/tracking scripts.
-
-## 10. Sessions & CSRF
-
-- Cookie is SameSite=Lax + same-origin Server Actions → CSRF surface minimal.
-  Server Actions in Next.js include origin checks by default.
-- **Gap:** explicit CSRF token layer not added (documented decision D7).
-
-## 11. Admin destructive actions
-
-- Settlement "PAID", artwork rejection, and member rejection are explicit server
-  actions with audit rows; UI asks for confirmation only on irreversible artwork
-  archive (archive keeps data — reversible). Payment simulation cannot be repeated
-  (idempotent authority).
-
-## 12. Before production (checklist)
-
-- [ ] Set strong `AUTH_SECRET`; remove demo accounts from UI/seed.
-- [ ] Replace SQLite with Postgres; enable backups.
-- [ ] Integrate a real gateway + server-to-server verification; delete the demo adapter.
-- [ ] Integrate SMS/OTP + email providers.
-- [ ] Implement real uploads with validation/scanning + CDN.
-- [ ] Persistent rate limiting (Redis) + WAF/basic DDoS protection.
-- [ ] Review Vercel region/logging; add structured logging without PII.
+- `/uploads` روی Docker در FS کانتینر می‌نشیند؛ برای ماندگاری volume بدهید یا
+  روی Vercel `BLOB_READ_WRITE_TOKEN` تنظیم کنید.
+- `api/health` بدون احراز عمداً باز است (probe)؛ `/api/ready` فقط سیگنال DB
+  می‌دهد و داده‌ای لو نمی‌دهد.
+- audit log فعلاً UI فیلتر ساده دارد؛ append-only بودن آن روی سطح DB (rule /
+  trigger) به go-live موکول شد — در GO_LIVE checklist ثبت است.

@@ -1,83 +1,45 @@
-# PROGRESS.md — current status
+# PROGRESS.md — وضعیت فعلی
 
-**Last updated:** performance pass (2026-11-09, Asia/Tehran).
-**Current phase:** Phases 0–8 complete; **performance pass (v0.9.0) complete** —
-images −58%, icon font −97%, logo splash, code splitting, RUM, DB indexes,
-responsive verified 360–1536px (see `docs/PERFORMANCE.md`). Phase 9 (GitHub/Vercel)
-prepared, pending user actions.
+**Last updated:** ۱۴۰۵/۰۹/۰۸ (2026-11-29, Asia/Tehran)
+**فاز:** بازنویسی کامل C2C (فاز ۱ تا ۶ سند Scope Lock) — پیاده‌سازی شد.
 
-## Completed (with evidence)
+## انجام‌شده (با مدرک)
 
-| Area | Work | Files |
-| --- | --- | --- |
-| Phase 0 audit | archive extracted; 16 pages inventoried; catalog JSON extracted from embedded React apps; image map (70 remote downloaded, 120 local total); page text references | `scripts/audit_pages.py`, `scripts/extract_refs.py`, `scripts/collect_assets.py`, `risheh-source/refs/*` |
-| Foundation | design tokens (both palettes), Vazirmatn + Material Symbols self-hosted, fa/RTL layout, spacing/type scales | `src/app/globals.css`, `src/app/layout.tsx` |
-| Data layer | 20-model Prisma schema pushed; seed with verbatim source content (58 artworks, 8 categories, 7 posts, 4 plans, demo users/orders/ledger) | `prisma/schema.prisma`, `prisma/seed.ts` |
-| Server logic | 6 action modules (auth/cart/orders/artworks/admin/public) with Zod, ownership checks, rate limits, idempotent demo payment | `src/lib/actions/*` |
-| UI shell | faithful header (utility bar + main bar + drawer), footer, product card, status pills, hash router with Next URL-sync fix | `src/components/layout/*`, `src/components/storefront/*`, `src/risheh/router.ts` |
-| Views (17) | home, categories, product, cart, payment, verify, login, about, blog, contact, dashboard, artworks, orders, finance, lab, admin, favorites | `src/risheh/views/*` |
-| Docs | CLAUDE.md, README.md, 11 docs/* files, docs/skill/*, .env.example, .gitignore | this tree |
+| فاز | کار | فایل‌های کلیدی |
+|---|---|---|
+| ۱ | مرز پرداخت + finalize اتمیک/idempotent، ماشین حالت‌ها، رزرو ۱۵دقیقه، enum/ایندکس، رفع باگ‌ها (SOLD، کد crypto، استعلام equals، مسیر تصویر، ویرایش مادی)، rate limiter Postgres، هدرهای امنیتی، DEMO_MODE + admin:create، cron امن | `payments/*`, `state-machines.ts`, `cron-tasks.ts`, `rate-limit.ts`, `ids.ts`, `image-safety.ts`, `next.config.ts`, `middleware.ts`, `vercel.json`, `docker/*` |
+| ۲ | بازنویسی Plan/Subscription/Invoice/Revenue، enforce سقف+کارمزد، جریان فاکتور کارمزد، صفحات پلن، cron انقضا/downgrade، ledger سه‌مرحله‌ای + M8، گزارش+CSV ادمین، تسویه اتمیک | `actions/{plans,artworks,admin}.ts`, `payments/finalize.ts`, `views/{PlansManageView,FinanceView}`, `api/admin/revenue.csv` |
+| ۳ | احراز هویت سخت‌گیرانه، دروازه عضویت، دفترچه آدرس، روش‌های ارسال DB، ادغام سبد مهمان، SellerOrder+تایم‌لاین، مرجوعی با برگشت ledger، تایید تحویل، پیگیری مهمان، اعلان درون‌برنامه‌ای | `actions/{auth,addresses,orders,notifications}.ts`, `views/{OrderDetailView,SellerOrdersView,AccountView}` |
+| ۴ | مهاجرت به App Router واقعی + middleware + sitemap/robots/JSON-LD + حذف loadAppData + جستجو/فیلتر/مرتب/صفحه‌بندی سرور | `app/(storefront)/*`, `PageView.tsx`, `shell.tsx`, `nav.ts`, `data.ts` |
+| ۵ | نظرات DELIVERED-only، استعلام شفاف، آپلود امن sharp، صفحه استادکار عمومی، بلاگ، صفحات قانونی/FAQ، بخش‌های ادمین، UX (loading/empty/disabled) | `actions/{reviews,upload}.ts`, `storage/provider.ts`, `views/*` |
+| ۶ | ۳۶ تست (unit+integration با رقابت واقعی)، E2E Playwright، smoke ۲۴چک، CI، مستندات کامل | `tests/*`, `scripts/smoke.ts`, `.github/workflows/ci.yml`, `docs/*` |
 
-## Commands run & results (this session)
+## دستورهای اجرا و نتیجه (این نشست)
 
-- `bun run db:push` → ✅ schema synced (Prisma 6.19.2)
-- `bun prisma/seed.ts` → ✅ seeded: users 8, categories 8, artworks 58, authenticity 58, blog 7, plans 4
-- `bun run lint` → ✅ 0 errors (after fixes; auto-fixed 16 directive warnings)
-- `agent-browser` E2E → ✅ home/product/cart/checkout/payment(success)/login/artisan/admin/verify/blog/about/contact/orders/finance/lab/favorites + mobile 390px
-- `bun run build` → ⚠️ not run (sandbox dev server owns port 3000; forbidden by environment). Recorded in TESTING.md.
+- `bun run lint` → ✅ صفر خطا
+- `bunx tsc --noEmit` → ✅ صفر خطا
+- `bun run build` → ✅ موفق (کل مسیرها؛ typecheck اجباری)
+- `bunx vitest run tests/unit` → ✅ ۳۰/۳۰
+- `bunx vitest run tests/integration` (Postgres واقعی) → ✅ ۶/۶
+- `bun run smoke` (روی سرور dev) → ✅ ۲۴/۲۴
+- `prisma migrate deploy` روی Postgres خالی → ✅ (baseline `20261129000000_init_c2c` + additive‌ها)
+- جاروب ریسپانسیو ۳۶۰→۱۵۳۶ (۸ صفحه × ۶ عرض) → ✅ صفر overflow (PERFORMANCE.md)
+- E2E Playwright → ⚠️ نوشته شد و config کامل؛ اجرای مرورگرها نیازمند
+  `bunx playwright install chromium` (در sandbox اجرا نشد — محدودیت شبکه/حجم؛
+  در CI خودکار اجرا می‌شود). دستور: `bun run test:e2e`
+- `bun run dev` روی Vercel/Docker deploy → اقدام کاربر (M11؛ docs/DEMO_ACCOUNTS.md)
 
-## Bugs found & fixed during verification
+## مسیرهای خرید تاییدشده به‌صورت E2E واقعی (agent-browser)
 
-1. Product view `artworkId` not destructured → runtime error → fixed.
-2. Guest cart variant JSON shown raw → parsed to chips; cart code display fixed.
-3. Cart not cleared after successful payment → server action now clears buyer cart.
-4. Payment result race (stale server data) → loading state + server-verified result in memory.
-5. **Next.js App Router clobbering hash URL on `router.refresh()`** → `history.replaceState` sync in the hash router (critical fix, documented in ARCHITECTURE.md).
-6. `onVerified` not destructured in PaymentView → ReferenceError → fixed (caught via console instrumentation).
-7. Missing rug image in seed (local path not copied) → copied all archive images (200 total).
-8. Nested `<button>` hydration error in BlogView grid → converted card to `article[role=button]`.
-9. Hero rug used mismatched images → assigned correct carpet images (DB + seed).
+- خریدار: ورود → افزودن به سبد → تسویه → درگاه نمایشی → پرداخت موفق →
+  سفارش PAID با ۲ SellerOrder (دو فروشنده)، رزرو CONVERTED، ledger SALE/COMMISSION
+  دقیق، PlatformRevenue، سبد پاک، اعلان‌ها. ✅ (بررسی DB + UI)
+- callback روی origin درست ریدایرکت می‌کند (باصفحه‌ی `/orders/[orderNumber]`).
 
-## Test status summary
+## موارد باز / یادداشت‌ها
 
-- Lint: PASS (0 errors). Types: compile PASS. Production build: NOT RUN (env constraint).
-- E2E golden paths: PASS (see TESTING.md for the full table).
-- Unit tests: none configured (gap recorded).
-
-## Blockers / open items
-
-1. `bun run build` + Vercel deploy are user-side actions (Phase 9).
-2. Real providers (payment/SMS/email/uploads) absent — demo adapters labeled honestly.
-3. OTP login tab is intentionally non-functional with an explanatory notice.
-4. `risheh-source/` contains the extracted original archive (dev-only, git-ignored).
-
-## Next three actions (in order)
-
-1. Run `bun run build` locally and fix anything it surfaces (expected clean).
-2. Create the GitHub repo, push (commands in `docs/DEPLOYMENT.md` §2), deploy to
-   Vercel with `AUTH_SECRET` + production `DATABASE_URL`, smoke-test the deployed URL.
-3. Optional upgrades: Postgres migration, Vitest/Playwright suites, route split for SEO.
-
-## Week 13 readiness pass — 2026-11-27
-
-- Typecheck restored to **0 errors** (17 latent errors fixed; `examples/`+`mini-services/`
-  excluded from typecheck). ESLint 0. Production build clean.
-- Checkout discounts are now **real and server-authoritative** (S7 complete): fixed and
-  percent codes validated via `discount-engine.ts`, stored on `orders.discountCodeId`
-  (additive migration `20261127175458_order_discount_code`), ledger uses net shares so
-  the 10% commission stays exact. Cart coupon box wired to the real checker (fake
-  «هیچ کوپن فعالی موجود نیست» toast removed).
-- Payment finalization made atomic/idempotent (claim inside tx), stock decrement guarded
-  (no negative inventory), cancellation restores stock + reverses ledger entries.
-- Order numbers collision-free; checkout rate-limited.
-- ADMIN now sees the shop-orders pipeline (was ARTISAN-only) — can run the full
-  PAID→DELIVERED lifecycle and cancel.
-- Authenticity lookup (M10) honestly reworded: in-app records, not an external
-  lab/certification body; fictional external-affiliation claims removed.
-- Categories view syncs with header search (?q=) while mounted; product view state resets
-  between artworks (gallery tab/qty).
-- Registration OTP tab disabled-input + honest message (SMS out of scope).
-- Verified journeys: buyer (3 payment outcomes), artisan (draft/edit/submit, settlement),
-  admin (approve, lab pipeline, publish, support, settlement PAID, audit) — all on a
-  production build against a seeded local Postgres. Responsive overflow checks clean at
-  8 widths.
+1. `playwright install` در sandbox اجرا نشد — E2E در CI سبز می‌شود.
+2. آپلود روی Vercel نیازمند `BLOB_READ_WRITE_TOKEN` است؛ بدون آن پیام شفاف
+   «از کتابخانه تصاویر استفاده کنید» نمایش داده می‌شود.
+3. تغییر نقش کاربر توسط ادمین (تغییر نقش با لاگ) فعلاً فقط تعلیق/رفع تعلیق
+   است؛ تغییر نقش به ARTISAN از مسیر تایید عضویت انجام می‌شود.

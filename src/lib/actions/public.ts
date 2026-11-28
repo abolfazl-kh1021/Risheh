@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { db, dbRetry } from "@/lib/db";
-import { rateLimit } from "@/lib/session";
+import { rateLimit } from "@/lib/rate-limit";
 import { toEnDigits as toEnDigitsSafe } from "@/lib/fa";
 
 export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
@@ -17,7 +17,7 @@ const contactSchema = z.object({
 export async function sendContactMessageAction(
   input: z.input<typeof contactSchema>
 ): Promise<ActionResult> {
-  if (!rateLimit("contact", 5, 300_000)) {
+  if (!(await rateLimit("contact", 5, 300_000))) {
     return { ok: false, error: "تعداد پیام‌های ارسالی بیش از حد مجاز است؛ بعداً تلاش کنید." };
   }
   const parsed = contactSchema.safeParse(input);
@@ -46,7 +46,7 @@ const newsletterSchema = z.object({
 export async function subscribeNewsletterAction(
   input: z.input<typeof newsletterSchema>
 ): Promise<ActionResult> {
-  if (!rateLimit("newsletter", 10, 300_000)) {
+  if (!(await rateLimit("newsletter", 10, 300_000))) {
     return { ok: false, error: "تعداد درخواست‌ها بیش از حد مجاز است." };
   }
   const parsed = newsletterSchema.safeParse(input);
@@ -78,7 +78,7 @@ export type VerifyResult =
   | { ok: false; error: string };
 
 export async function verifyAuthenticityAction(code: string): Promise<VerifyResult> {
-  if (!rateLimit("verify", 30, 60_000)) {
+  if (!(await rateLimit("verify", 30, 60_000))) {
     return { ok: false, error: "تعداد استعلام‌ها بیش از حد مجاز است؛ یک دقیقه بعد تلاش کنید." };
   }
   const normalized = toEnDigitsSafe(code).trim().toUpperCase().replace(/\s+/g, "");

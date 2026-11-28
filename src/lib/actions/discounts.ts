@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db, dbRetry } from "@/lib/db";
-import { getCurrentUser, rateLimit } from "@/lib/session";
+import { getCurrentUser } from "@/lib/session";
+import { rateLimit } from "@/lib/rate-limit";
 import { invalidatePublicCatalog } from "@/lib/data";
 import type { ActionResult } from "@/lib/actions/auth";
 import type { DiscountStatus } from "@/lib/types";
@@ -116,7 +117,7 @@ export async function checkDiscountCodeAction(rawCode: string): Promise<Discount
   if (!trimmed) return { ok: false, error: "کد تخفیف را وارد کنید." };
 
   // Light abuse protection for the public endpoint.
-  if (!rateLimit(`discount-check:${user?.id ?? "guest"}`, 12, 30_000)) {
+  if (!(await rateLimit(`discount-check:${user?.id ?? "guest"}`, 12, 30_000))) {
     return { ok: false, error: "درخواست‌های بیش از حد؛ کمی بعد دوباره تلاش کنید." };
   }
 
@@ -154,7 +155,7 @@ export async function claimDiscountCodeAction(rawCode: string): Promise<ActionRe
 
   const trimmed = rawCode?.trim();
   if (!trimmed) return { ok: false, error: "کد تخفیف را وارد کنید." };
-  if (!rateLimit(`discount-claim:${user.id}`, 10, 30_000)) {
+  if (!(await rateLimit(`discount-claim:${user.id}`, 10, 30_000))) {
     return { ok: false, error: "درخواست‌های بیش از حد؛ کمی بعد دوباره تلاش کنید." };
   }
 

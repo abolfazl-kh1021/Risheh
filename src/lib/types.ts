@@ -1,8 +1,9 @@
-/** Shared DTO types passed from server components to the client SPA. */
+/** Shared DTO types passed from server components to client views. */
 
 export type SellerDTO = {
   id: string;
   name: string;
+  slug?: string | null;
   shopTitle?: string | null;
   province?: string | null;
   bio?: string | null;
@@ -16,6 +17,8 @@ export type ReviewDTO = {
   rating: number;
   comment: string;
   createdAt: string;
+  sellerReply?: string | null;
+  canReview?: boolean; // buyer-side hint (delivered purchase)
 };
 
 export type AuthenticityDTO = {
@@ -55,6 +58,9 @@ export type ArtworkDTO = {
   categoryTitle: string;
   authenticity?: AuthenticityDTO | null;
   reviews: ReviewDTO[];
+  reviewNote?: string | null;
+  publishedAt?: string | null;
+  expiresAt?: string | null;
   createdAt: string;
 };
 
@@ -91,7 +97,29 @@ export type CartItemDTO = {
   variant?: string | null;
   sellerName: string;
   stock: number;
+  available: number; // stock − active reservations
   code: string;
+  sellerId: string;
+};
+
+export type ShippingMethodDTO = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  priceToman: number;
+};
+
+export type AddressDTO = {
+  id: string;
+  title: string;
+  receiverName: string;
+  phone: string;
+  province: string;
+  city: string;
+  postalCode?: string | null;
+  line1: string;
+  isDefault: boolean;
 };
 
 export type SessionUserDTO = {
@@ -99,12 +127,13 @@ export type SessionUserDTO = {
   email: string;
   name: string;
   role: "BUYER" | "ARTISAN" | "ADMIN";
+  slug?: string | null;
   shopTitle?: string | null;
   province?: string | null;
   bio?: string | null;
   avatar?: string | null;
+  iban?: string | null;
   verified: boolean;
-  planId?: string | null;
 } | null;
 
 export type OrderItemDTO = {
@@ -114,11 +143,41 @@ export type OrderItemDTO = {
   unitPrice: number;
   quantity: number;
   sellerId: string;
+  sellerOrderId?: string | null;
+  sellerName?: string | null;
+};
+
+export type OrderEventDTO = {
+  id: string;
+  type: string;
+  status?: string | null;
+  detail?: string | null;
+  actor: string;
+  sellerOrderId?: string | null;
+  createdAt: string;
+};
+
+export type SellerOrderDTO = {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  sellerShopTitle?: string | null;
+  status: string;
+  gross: number;
+  discountShare: number;
+  net: number;
+  commission: number;
+  shippingShare: number;
+  itemIds: string[];
+  paidAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
 };
 
 export type OrderDTO = {
   id: string;
   orderNumber: string;
+  buyerId?: string | null;
   buyerName: string;
   buyerPhone: string;
   city: string;
@@ -132,10 +191,11 @@ export type OrderDTO = {
   status: string;
   createdAt: string;
   items: OrderItemDTO[];
-  tracking: Array<{ id: string; status: string; detail?: string | null; actor: string; createdAt: string }>;
+  sellerOrders: SellerOrderDTO[];
+  events: OrderEventDTO[];
   payments: Array<{
     id: string;
-    gateway: string;
+    provider: string;
     amount: number;
     status: string;
     refNumber?: string | null;
@@ -144,23 +204,80 @@ export type OrderDTO = {
   }>;
 };
 
+export type SellerOrderRowDTO = SellerOrderDTO & {
+  orderNumber: string;
+  orderStatus: string;
+  orderCreatedAt: string;
+  buyerName: string;
+  items: Array<OrderItemDTO>;
+  orderAddress: string;
+  orderCity: string;
+  orderPhone: string;
+  orderNote?: string | null;
+};
+
 export type LedgerEntryDTO = {
   id: string;
   kind: string;
   amount: number;
   detail?: string | null;
   status: string;
+  availableAt?: string | null;
   createdAt: string;
   orderId?: string | null;
+  sellerOrderId?: string | null;
 };
 
-export type SettlementDTO = {
+export type PayoutDTO = {
   id: string;
   amount: number;
   iban: string;
   status: string;
   adminNote?: string | null;
+  reference?: string | null;
   createdAt: string;
+  decidedAt?: string | null;
+  paidAt?: string | null;
+  sellerName?: string;
+};
+
+export type InvoiceDTO = {
+  id: string;
+  number: string;
+  kind: string;
+  status: string;
+  amount: number;
+  description: string;
+  createdAt: string;
+  paidAt?: string | null;
+  orderNumber?: string | null;
+  artworkTitle?: string | null;
+};
+
+export type SubscriptionDTO = {
+  id: string;
+  planId: string;
+  planTitle: string;
+  status: string;
+  startsAt: string;
+  expiresAt: string;
+  maxActiveListings?: number | null;
+  listingFeeToman?: number;
+  commissionBps?: number;
+};
+
+export type PlanDTO = {
+  id: string;
+  slug: string;
+  title: string;
+  tag?: string | null;
+  priceToman: number;
+  periodDays: number;
+  maxActiveListings: number | null;
+  listingFeeToman: number;
+  commissionBps: number;
+  features: string[];
+  highlight: boolean;
 };
 
 export type LabRequestDTO = {
@@ -179,29 +296,30 @@ export type MemberRequestDTO = {
   workshop: string;
   province: string;
   portfolio?: string | null;
-  planId: string;
   status: string;
   createdAt: string;
   userName: string;
   userEmail: string;
 };
 
-export type PlanDTO = {
+export type ReturnRequestDTO = {
   id: string;
-  title: string;
-  tag?: string | null;
-  price: number;
-  unit: string;
-  artworks: string;
-  support: string;
-  discount: string;
-  features: string[];
-  highlight: boolean;
+  orderItemId: string;
+  itemTitle: string;
+  orderNumber: string;
+  orderNumberShort: string;
+  buyerName?: string;
+  sellerName?: string;
+  sellerOrderId?: string | null;
+  reason: string;
+  detail?: string | null;
+  status: string;
+  resolution?: string | null;
+  createdAt: string;
 };
 
 export type AdminTransactionDTO = {
   id: string;
-  actor: string;
   kind: string;
   amount: number;
   detail?: string | null;
@@ -225,6 +343,30 @@ export type ContactMessageDTO = {
   message: string;
   handled: boolean;
   createdAt: string;
+};
+
+export type NotificationDTO = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  link?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+};
+
+export type BalanceDTO = {
+  pending: number; // در انتظار تحویل
+  holding: number; // در دوره نگهداری
+  cleared: number; // قابل تسویه
+  lockedInPayouts: number;
+  available: number; // cleared − locked
+};
+
+export type ArtisanStatsDTO = {
+  views: number | null; // null = plan does not include stats
+  sales: number;
+  revenue: number;
 };
 
 // ---------- Discounts ----------
@@ -315,13 +457,35 @@ export type AdminDiscountsDTO = {
   };
 };
 
+// ---------------------------------------------------------------------------
+// Per-page data bundles (Phase 4: NO monolithic loadAppData — each route's
+// Server Component loads exactly what that page needs, paginated).
+// ---------------------------------------------------------------------------
+
+export type ShellData = {
+  user: SessionUserDTO;
+  cartCount: number;
+  categories: CategoryDTO[];
+  unreadNotifications: number;
+  demoMode: boolean;
+};
+
+export type CatalogResult = {
+  artworks: ArtworkDTO[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
 export type AppData = {
   user: SessionUserDTO;
   categories: CategoryDTO[];
-  artworks: ArtworkDTO[];
-  posts: BlogPostDTO[];
-  cart: CartItemDTO[];
-  // Discounts (public storefront view — active campaigns & codes)
+  artworks?: ArtworkDTO[];
+  catalog?: CatalogResult;
+  posts?: BlogPostDTO[];
+  cart?: CartItemDTO[];
+  addresses?: AddressDTO[];
+  shippingMethods?: ShippingMethodDTO[];
   discounts?: {
     campaigns: DiscountCampaignDTO[];
     codes: DiscountCodeDTO[];
@@ -331,15 +495,19 @@ export type AppData = {
   favorites?: string[];
   // Artisan
   myArtworks?: ArtworkDTO[];
+  sellerOrders?: SellerOrderRowDTO[];
   artisanOrders?: OrderDTO[];
   ledger?: LedgerEntryDTO[];
-  settlements?: SettlementDTO[];
+  balance?: BalanceDTO;
+  payouts?: PayoutDTO[];
+  invoices?: InvoiceDTO[];
+  subscription?: SubscriptionDTO | null;
   labRequests?: LabRequestDTO[];
-  plan?: PlanDTO | null;
   // Admin
   admin?: {
     memberRequests: MemberRequestDTO[];
     plans: PlanDTO[];
+    subscriptions: Array<SubscriptionDTO & { sellerName: string; sellerEmail: string }>;
     transactions: AdminTransactionDTO[];
     audit: AuditLogDTO[];
     messages: ContactMessageDTO[];
@@ -361,15 +529,10 @@ export type AppData = {
       pendingArtworks: number;
       messages: number;
     };
-    settlements: Array<{
-      id: string;
-      amount: number;
-      iban: string;
-      status: string;
-      adminNote?: string | null;
-      createdAt: string;
-      sellerName: string;
-    }>;
+    payouts: PayoutDTO[];
+    returns: ReturnRequestDTO[];
+    revenueByKind: Array<{ kind: string; amount: number }>;
+    settings: Record<string, string>;
     discounts: AdminDiscountsDTO;
   };
 };

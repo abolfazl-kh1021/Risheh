@@ -39,7 +39,7 @@ export function AdminDiscountsSection({ data, refresh }: Props) {
   const admin = data.admin!;
   const discounts = admin.discounts;
   const publishedArtworks = useMemo(
-    () => data.artworks.filter((a) => a.status === "PUBLISHED"),
+    () => (data.artworks ?? []).filter((a) => a.status === "PUBLISHED"),
     [data.artworks]
   );
 

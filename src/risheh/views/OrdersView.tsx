@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { MSymbol } from "@/components/icons";
-import { faDateTime, faNum, faPrice, ORDER_STATUS_FA } from "@/lib/fa";
-import { updateOrderStatusAction } from "@/lib/actions/orders";
+import { faDateTime, faNum, faPrice } from "@/lib/fa";
+import { ORDER_STATUS_FA } from "@/lib/state-machines";
+import { cancelPendingOrderAction, retryOrderPaymentAction } from "@/lib/actions/orders";
 import type { AppData, OrderDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ function StatusChip({ status }: { status: string }) {
     SHIPPED: "bg-primary-fixed text-on-primary-fixed border-primary-fixed-dim",
     DELIVERED: "bg-secondary/15 text-secondary border-secondary/50",
     CANCELLED: "bg-error-container text-on-error-container border-error/40",
+    EXPIRED: "bg-surface-container text-on-surface-variant border-outline-variant",
     PENDING_PAYMENT: "bg-surface-container text-on-surface-variant border-outline-variant",
     PAYMENT_FAILED: "bg-error-container text-on-error-container border-error/40",
   };
@@ -29,12 +31,12 @@ function StatusChip({ status }: { status: string }) {
   );
 }
 
+/** تاریخچه سفارش خریدار (M7) — کارت‌ها، رهگیر وضعیت و پیوند جزئیات. */
 export function OrdersView({ data, navigate, refresh }: Props) {
   const { toast } = useToast();
   const user = data.user;
-  const isArtisan = user?.role === "ARTISAN" || user?.role === "ADMIN";
-  const [tab, setTab] = useState<"mine" | "shop">(user?.role === "ARTISAN" ? "shop" : "mine");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   if (!user) {
     return (
@@ -48,61 +50,64 @@ export function OrdersView({ data, navigate, refresh }: Props) {
           >
             ورود | ثبت‌نام
           </button>
+          <button
+            onClick={() => navigate("track")}
+            className="text-xs text-secondary hover:underline"
+          >
+            سفارش مهمان دارید؟ پیگیری با شماره سفارش و موبایل
+          </button>
         </div>
       </div>
     );
   }
 
   const myOrders = data.myOrders ?? [];
-  const shopOrders = data.artisanOrders ?? [];
 
-  const advance = async (order: OrderDTO, status: "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED") => {
-    const res = await updateOrderStatusAction({ orderId: order.id, status });
+  const retryPay = async (o: OrderDTO) => {
+    setBusyId(o.id);
+    const res = await retryOrderPaymentAction(o.orderNumber);
+    setBusyId(null);
     if (res.ok) {
-      toast({ title: "وضعیت سفارش", description: res.message });
+      window.location.href = res.redirectUrl;
+    } else {
+      toast({ title: "خطا", description: res.error, variant: "destructive" });
+    }
+  };
+
+  const cancelOrder = async (o: OrderDTO) => {
+    setBusyId(o.id);
+    const res = await cancelPendingOrderAction(o.orderNumber);
+    setBusyId(null);
+    if (res.ok) {
+      toast({ title: "لغو سفارش", description: res.message });
       refresh();
     } else {
       toast({ title: "خطا", description: res.error, variant: "destructive" });
     }
   };
 
-  const sellerItems = (o: OrderDTO) => (user.role === "ADMIN" ? o.items : o.items.filter((i) => i.sellerId === user.id));
-
   return (
     <div className="max-w-7xl mx-auto px-gutter py-space-lg pb-space-xl">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div>
-          <h1 className="font-headline-lg text-primary font-extrabold">سفارش‌ها و ارسال</h1>
+          <h1 className="font-headline-lg text-primary font-extrabold">سفارش‌های من</h1>
           <p className="text-xs text-on-surface-variant mt-1">
-            {tab === "shop"
-              ? "مرسولات جاری نگارخانه — سفارش‌های نیازمند بسته‌بندی امن و تحویل به ناوگان تشریفات ریشه"
-              : "پیگیری سفارش‌ها و مرور وضعیت مرسولات خریداری‌شده"}
+            پیگیری سفارش‌ها و مرور وضعیت مرسولات خریداری‌شده — وضعیت کلی سفارش از زیرسفارش کارگاه‌ها مشتق می‌شود.
           </p>
         </div>
-        {isArtisan && (
-          <div className="flex gap-2 bg-surface-container rounded-full p-1">
-            <button
-              onClick={() => setTab("shop")}
-              className={cn("px-4 py-2 rounded-full text-xs font-bold transition", tab === "shop" ? "bg-primary-container text-on-primary shadow-sm" : "text-on-surface-variant")}
-            >
-              مرسولات جاری کارگاه
-            </button>
-            <button
-              onClick={() => setTab("mine")}
-              className={cn("px-4 py-2 rounded-full text-xs font-bold transition", tab === "mine" ? "bg-primary-container text-on-primary shadow-sm" : "text-on-surface-variant")}
-            >
-              سفارش‌های من
-            </button>
-          </div>
-        )}
+        <button
+          onClick={() => navigate("track")}
+          className="text-xs font-bold text-secondary hover:text-primary flex items-center gap-1"
+        >
+          <MSymbol name="travel_explore" size={16} />
+          پیگیری سفارش مهمان
+        </button>
       </div>
 
-      {(tab === "shop" ? shopOrders : myOrders).length === 0 ? (
+      {myOrders.length === 0 ? (
         <div className="bg-surface-container-lowest rounded-2xl elevation-1 p-10 text-center flex flex-col items-center gap-2">
           <MSymbol name="inbox" size={40} className="text-outline" />
-          <p className="text-sm text-on-surface-variant">
-            {tab === "shop" ? "سفارشی برای کارگاه شما ثبت نشده است." : "هنوز سفارشی ثبت نکرده‌اید."}
-          </p>
+          <p className="text-sm text-on-surface-variant">هنوز سفارشی ثبت نکرده‌اید.</p>
           <button
             onClick={() => navigate("categories/all")}
             className="bg-primary text-on-primary rounded-xl px-5 py-2.5 text-xs font-bold hover:bg-primary-container transition"
@@ -112,16 +117,21 @@ export function OrdersView({ data, navigate, refresh }: Props) {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {(tab === "shop" ? shopOrders : myOrders).map((o) => {
-            const items = tab === "shop" ? sellerItems(o) : o.items;
+          {myOrders.map((o) => {
             const stepIdx = TRACK_STEPS.indexOf((o.status as (typeof TRACK_STEPS)[number]) ?? "PAID");
             const isOpen = expanded === o.id;
+            const canPay = o.status === "PENDING_PAYMENT" || o.status === "PAYMENT_FAILED";
             return (
               <div key={o.id} className="bg-surface-container-lowest rounded-2xl elevation-1 overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-primary">{o.orderNumber}</span>
+                      <button
+                        onClick={() => navigate(`orders/${o.orderNumber}`)}
+                        className="font-mono text-xs font-bold text-primary hover:underline"
+                      >
+                        {o.orderNumber}
+                      </button>
                       <StatusChip status={o.status} />
                     </div>
                     <div className="flex items-center gap-3 text-xs">
@@ -133,8 +143,8 @@ export function OrdersView({ data, navigate, refresh }: Props) {
                   {/* Timeline */}
                   <div className="flex items-center gap-1 mt-3">
                     {TRACK_STEPS.map((s, i) => {
-                      const reached = o.status !== "CANCELLED" && o.status !== "PAYMENT_FAILED" && stepIdx >= i && stepIdx >= 0;
-                      const isCurrent = reached && (stepIdx === i || (stepIdx === -1 && i === 0));
+                      const reached = o.status !== "CANCELLED" && o.status !== "PAYMENT_FAILED" && o.status !== "EXPIRED" && stepIdx >= i && stepIdx >= 0;
+                      const isCurrent = reached && stepIdx === i;
                       return (
                         <div key={s} className="flex-1 flex items-center gap-1">
                           <div
@@ -159,9 +169,8 @@ export function OrdersView({ data, navigate, refresh }: Props) {
 
                   {/* Items preview */}
                   <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    {items.map((i) => (
+                    {o.items.map((i) => (
                       <div key={i.id} className="flex items-center gap-2 bg-surface-container-low rounded-xl p-1.5">
-                        { }
                         <img src={i.image} alt="" className="w-10 h-10 rounded-lg object-cover" />
                         <div>
                           <p className="text-[11px] font-bold text-primary line-clamp-1 max-w-[180px]">{i.title}</p>
@@ -171,55 +180,39 @@ export function OrdersView({ data, navigate, refresh }: Props) {
                         </div>
                       </div>
                     ))}
+                    {canPay && (
+                      <button
+                        onClick={() => retryPay(o)}
+                        disabled={busyId === o.id}
+                        className="px-4 py-2 rounded-full bg-primary text-on-primary text-xs font-bold disabled:opacity-60"
+                      >
+                        {o.status === "PAYMENT_FAILED" ? "تلاش مجدد پرداخت" : "ادامه پرداخت"}
+                      </button>
+                    )}
+                    {o.status === "PENDING_PAYMENT" && (
+                      <button
+                        onClick={() => cancelOrder(o)}
+                        disabled={busyId === o.id}
+                        className="px-4 py-2 rounded-full border border-outline text-xs font-bold text-on-surface-variant disabled:opacity-60"
+                      >
+                        لغو سفارش
+                      </button>
+                    )}
                     <button
                       onClick={() => setExpanded(isOpen ? null : o.id)}
                       className="text-xs font-bold text-secondary hover:text-primary flex items-center gap-1"
                     >
-                      {isOpen ? "بستن جزئیات" : "جزئیات و رهگیری"}
+                      {isOpen ? "بستن جزئیات" : "جزئیات و تایم‌لاین"}
                       <MSymbol name={isOpen ? "expand_less" : "expand_more"} size={16} />
                     </button>
+                    <button
+                      onClick={() => navigate(`orders/${o.orderNumber}`)}
+                      className="text-xs font-bold text-secondary hover:text-primary flex items-center gap-1"
+                    >
+                      صفحه سفارش
+                      <MSymbol name="arrow_left_alt" size={16} />
+                    </button>
                   </div>
-
-                  {/* Seller actions */}
-                  {tab === "shop" && (
-                    <div className="flex items-center gap-2 mt-3 flex-wrap">
-                      {o.status === "PAID" && (
-                        <button
-                          onClick={() => advance(o, "PREPARING")}
-                          className="px-4 py-2 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition flex items-center gap-1.5"
-                        >
-                          <MSymbol name="package_2" size={15} />
-                          شروع آماده‌سازی و بسته‌بندی امن
-                        </button>
-                      )}
-                      {o.status === "PREPARING" && (
-                        <button
-                          onClick={() => advance(o, "SHIPPED")}
-                          className="px-4 py-2 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition flex items-center gap-1.5"
-                        >
-                          <MSymbol name="local_shipping" size={15} />
-                          تحویل به ناوگان تشریفات و ثبت ارسال
-                        </button>
-                      )}
-                      {o.status === "SHIPPED" && (
-                        <button
-                          onClick={() => advance(o, "DELIVERED")}
-                          className="px-4 py-2 rounded-lg bg-primary text-on-primary text-xs font-bold hover:bg-primary-container transition flex items-center gap-1.5"
-                        >
-                          <MSymbol name="task_alt" size={15} />
-                          تایید تحویل به خریدار
-                        </button>
-                      )}
-                      {(o.status === "PAID" || o.status === "PREPARING") && (
-                        <button
-                          onClick={() => advance(o, "CANCELLED")}
-                          className="px-4 py-2 rounded-lg bg-error-container/50 text-on-error-container text-xs font-bold hover:bg-error-container transition"
-                        >
-                          لغو سفارش
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Expanded details */}
@@ -227,51 +220,51 @@ export function OrdersView({ data, navigate, refresh }: Props) {
                   <div className="border-t border-outline-variant/40 bg-surface-container-low p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="text-xs font-bold text-primary mb-2 flex items-center gap-1.5">
-                        <MSymbol name="pin_drop" size={14} className="text-secondary" />
-                        نشانی تحویل
+                        <MSymbol name="payments" size={14} className="text-secondary" />
+                        پرداخت‌ها
                       </h4>
-                      <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                        {o.buyerName} — {o.buyerPhone}
-                        <br />
-                        {o.city}، {o.address}
-                        {o.postalCode && (
-                          <>
-                            <br />
-                            کد پستی: <span dir="ltr">{o.postalCode}</span>
-                          </>
-                        )}
-                        {o.note && (
-                          <>
-                            <br />
-                            یادداشت: {o.note}
-                          </>
-                        )}
-                      </p>
-                      {o.payments[0] && (
-                        <div className="mt-2 text-[11px] text-on-surface-variant bg-surface-bright rounded-xl p-2.5">
-                          <p className="font-bold text-primary mb-1">اطلاعات پرداخت</p>
-                          <p>درگاه: {o.payments[0].gateway === "DEMO" ? "نمایشی (بدون انتقال پول)" : o.payments[0].gateway}</p>
-                          {o.payments[0].refNumber && (
-                            <p dir="ltr" className="font-mono">
-                              REF: {o.payments[0].refNumber}
+                      <div className="space-y-2">
+                        {o.payments.length === 0 && <p className="text-[11px] text-outline">تلاش پرداختی ثبت نشده است.</p>}
+                        {o.payments.map((p) => (
+                          <div key={p.id} className="text-[11px] text-on-surface-variant bg-surface-bright rounded-xl p-2.5">
+                            <p className="font-bold text-primary mb-1">
+                              {faPrice(p.amount)} تومان — {ORDER_STATUS_FA[p.status] ?? p.status}
                             </p>
-                          )}
-                        </div>
-                      )}
+                            <p>درگاه: {p.provider === "demo" ? "نمایشی (بدون انتقال پول)" : p.provider}</p>
+                            {p.refNumber && (
+                              <p dir="ltr" className="font-mono">
+                                REF: {p.refNumber}
+                              </p>
+                            )}
+                            {p.message && <p className="mt-1 text-outline leading-5">{p.message}</p>}
+                          </div>
+                        ))}
+                      </div>
+                      <h4 className="text-xs font-bold text-primary mb-2 mt-3 flex items-center gap-1.5">
+                        <MSymbol name="inventory_2" size={14} className="text-secondary" />
+                        کارگاه‌های سفارش
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {o.sellerOrders.map((so) => (
+                          <span key={so.id} className="text-[10px] rounded-full bg-surface-container px-2.5 py-1 text-on-surface-variant">
+                            {so.sellerShopTitle ?? so.sellerName}: {ORDER_STATUS_FA[so.status] ?? so.status}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                     <div>
                       <h4 className="text-xs font-bold text-primary mb-2 flex items-center gap-1.5">
                         <MSymbol name="timeline" size={14} className="text-secondary" />
-                        رویدادهای مرسوله
+                        رویدادهای سفارش
                       </h4>
                       <div className="flex flex-col gap-2">
-                        {o.tracking.length === 0 && <p className="text-[11px] text-outline">رویدادی ثبت نشده است.</p>}
-                        {o.tracking.map((t) => (
+                        {o.events.length === 0 && <p className="text-[11px] text-outline">رویدادی ثبت نشده است.</p>}
+                        {o.events.slice(-6).reverse().map((t) => (
                           <div key={t.id} className="flex items-start gap-2 text-[11px]">
                             <MSymbol name="history" size={14} className="text-outline mt-0.5 shrink-0" />
                             <div>
                               <p className="font-bold text-on-surface">
-                                {ORDER_STATUS_FA[t.status] ?? t.status}
+                                {ORDER_STATUS_FA[t.status ?? ""] ?? (t.type === "PAYMENT" ? "پرداخت" : t.type === "RETURN" ? "مرجوعی" : "رویداد")}
                                 <span className="font-normal text-outline"> — {faDateTime(t.createdAt)}</span>
                               </p>
                               {t.detail && <p className="text-outline leading-relaxed">{t.detail}</p>}

@@ -51,6 +51,10 @@ test
 prompt
 
 server.log
+db/custom.db
+db/*.db
+*.sqlite
+*.db-journal
 # Skills directory
 /skills/
 # project-specific

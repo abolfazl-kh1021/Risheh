@@ -27,9 +27,9 @@ export function BlogView({ data }: Props) {
   const [selected, setSelected] = useState<BlogPostDTO | null>(null);
   const [category, setCategory] = useState<string>("همه");
 
-  const featured = data.posts.find((p) => p.featured);
-  const categories = ["همه", ...Array.from(new Set(data.posts.map((p) => p.category ?? "عمومی")))];
-  const posts = category === "همه" ? data.posts.filter((p) => p !== featured) : data.posts.filter((p) => (p.category ?? "عمومی") === category);
+  const featured = (data.posts ?? []).find((p) => p.featured);
+  const categories = ["همه", ...Array.from(new Set((data.posts ?? []).map((p) => p.category ?? "عمومی")))];
+  const posts = category === "همه" ? (data.posts ?? []).filter((p) => p !== featured) : (data.posts ?? []).filter((p) => (p.category ?? "عمومی") === category);
 
   if (selected) {
     return (
@@ -151,7 +151,7 @@ export function BlogView({ data }: Props) {
                     : "bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary"
                 )}
               >
-                {c === "همه" && `همه مقالات ${faNum(data.posts.length)}`}
+                {c === "همه" && `همه مقالات ${faNum((data.posts ?? []).length)}`}
                 {c !== "همه" && c}
               </button>
             ))}

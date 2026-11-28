@@ -29,20 +29,39 @@ const PWD_HASH = (_salt: string, pass: string) => {
 const DEMO_PASSWORD = "risheh1403";
 
 async function main() {
+  // DEMO_MODE gate (rule ۱۰): without it, NO seed and NO default accounts.
+  // Escape hatch for local dev only: `SEED_FORCE=1 bun prisma/seed.ts`.
+  if (process.env.DEMO_MODE !== "true" && process.env.SEED_FORCE !== "1") {
+    console.error(
+      "Refusing to seed: DEMO_MODE=true required (or SEED_FORCE=1 for local dev).\n" +
+        "بدون حالت دمو هیچ داده نمونه‌ای ساخته نمی‌شود؛ ادمین را با `bun run admin:create` بسازید."
+    );
+    process.exit(1);
+  }
   console.log("Seeding Risheh demo data…");
+  await db.returnRequest.deleteMany();
+  await db.orderEvent.deleteMany();
+  await db.paymentEvent.deleteMany();
+  await db.paymentAttempt.deleteMany();
+  await db.stockReservation.deleteMany();
+  await db.orderItem.deleteMany();
+  await db.sellerOrder.deleteMany();
+  await db.order.deleteMany();
+  await db.invoice.deleteMany();
+  await db.subscription.deleteMany();
+  await db.plan.deleteMany();
+  await db.ledgerEntry.deleteMany();
+  await db.payoutRequest.deleteMany();
+  await db.address.deleteMany();
+  await db.notification.deleteMany();
+  await db.rateLimitBucket.deleteMany();
   await db.discountRedemption.deleteMany();
   await db.discountCode.deleteMany();
   await db.discountArtwork.deleteMany();
   await db.discountCampaign.deleteMany();
   await db.auditLog.deleteMany();
   await db.verificationEvent.deleteMany();
-  await db.trackingEvent.deleteMany();
-  await db.paymentAttempt.deleteMany();
-  await db.orderItem.deleteMany();
-  await db.order.deleteMany();
   await db.cartItem.deleteMany();
-  await db.settlementRequest.deleteMany();
-  await db.ledgerEntry.deleteMany();
   await db.memberRequest.deleteMany();
   await db.labRequest.deleteMany();
   await db.authenticityRecord.deleteMany();
@@ -50,7 +69,7 @@ async function main() {
   await db.favorite.deleteMany();
   await db.contactMessage.deleteMany();
   await db.blogPost.deleteMany();
-  await db.subscriptionPlan.deleteMany();
+  await db.shippingMethod.deleteMany();
   await db.artwork.deleteMany();
   await db.category.deleteMany();
   await db.session.deleteMany();
@@ -80,7 +99,8 @@ async function main() {
       province: "اصفهان",
       bio: "پیشکسوت میناکاری و قلم‌زنی اصفهان با بیش از ۳۵ سال فعالیت در میدان نقش‌جهان؛ دارنده نشان درجه‌یک هنری وزارت میراث فرهنگی.",
       avatar: localImg("img_2e787d364347.webp"),
-      planId: "gold",
+      slug: "sohrab-sepehrirad",
+      iban: "IR420170000000123456789001",
       verified: true,
     },
   });
@@ -94,7 +114,7 @@ async function main() {
       shopTitle: "کارگاه قالی‌بافی استاد شیرازی",
       province: "فارس",
       bio: "پیشکسوت هنر قالی‌بافی و احیاگر نقوش کهن عشایری فارس (بیش از ۴۰ سال سابقه طراحی و نظارت بر دار قالی).",
-      planId: "gold",
+      slug: "haj-yaqub-shirazi",
       verified: true,
     },
   });
@@ -108,7 +128,7 @@ async function main() {
       shopTitle: "کارگاه میناکاری اسماعیلی اصفهان",
       province: "اصفهان",
       bio: "میناکاری بر مس خالص با لعاب کوارتز نسوز و رنگ‌های سنتی لاجورد و شنگرف.",
-      planId: "silver",
+      slug: "esmaili-mina",
       verified: true,
     },
   });
@@ -122,7 +142,7 @@ async function main() {
       shopTitle: "کارگاه بافت حبیبیان نائین",
       province: "اصفهان",
       bio: "بافت فرش نائین ۹ لا با ابریشم سفید خالص کاشان و نقوش اسلیمی شاه‌عباسی.",
-      planId: "silver",
+      slug: "habibian-nain",
       verified: true,
     },
   });
@@ -136,7 +156,7 @@ async function main() {
       shopTitle: "کارگاه قلم‌زنی معتمدی",
       province: "اصفهان",
       bio: "دارنده نشان درجه‌یک هنری (قلم‌زنی مس) — زادگاه اصفهان، پل خواجو.",
-      planId: "bronze",
+      slug: "rasul-motamedi",
       verified: true,
     },
   });
@@ -202,9 +222,9 @@ async function main() {
       const sellerPick = [rugMaster, esmaili, habibian, motamedi, artisan, rugMaster][j % 6];
       const isArtisanOwned = j % 6 === 4;
       // Give a couple of artworks to the demo artisan in PENDING/DRAFT state
-      let status = "PUBLISHED";
+      let status = "PUBLISHED" as "PUBLISHED" | "PENDING_REVIEW" | "DRAFT";
       if (isArtisanOwned && j === 4) {
-        status = c.slug === "wicker" ? "PENDING" : c.slug === "pottery" ? "DRAFT" : "PUBLISHED";
+        status = c.slug === "wicker" ? "PENDING_REVIEW" : c.slug === "pottery" ? "DRAFT" : "PUBLISHED";
       }
       const price = Number(String(it.priceNum || it.price).replace(/,/g, "")) || 1000000;
       await db.artwork.create({
@@ -377,7 +397,7 @@ async function main() {
       title: "تنگ فیروزه‌کوبی نیشابور طرح شاه‌عباسی",
       desc: "تنگ سفالین فیروزه‌کوبی با نگاره شاه‌عباسی؛ فیروزه نیشابور به‌دست‌آمده روی لعاب قلیایی.",
       price: 3400000,
-      status: "PENDING",
+      status: "PENDING_REVIEW",
       cat: "pottery",
       imgName: "img_531a64913ca4.webp",
       spec: "ارتفاع ۲۶ سانتی‌متر",
@@ -416,7 +436,7 @@ async function main() {
         materials: a.spec,
         province: "اصفهان",
         stock: 1,
-        status: a.status,
+        status: a.status as "PUBLISHED" | "PENDING_REVIEW" | "DRAFT",
         rating: [4.8, 4.9, 0, 4.7, 0][i],
         ratingCount: [24, 31, 0, 15, 0][i],
       },
@@ -433,7 +453,7 @@ async function main() {
       data: {
         artworkId: aw.id,
         hologramCode: `RSH-${aw.code.replace("RSH-", "")}-H${holoIdx++}`,
-        status: verified ? "VERIFIED" : aw.status === "PENDING" ? "PENDING" : "PENDING",
+        status: verified ? "VERIFIED" : "PENDING",
         labStatus: verified ? "ISSUED" : "QUEUED",
         tests: JSON.stringify([
           { name: "سنجش متریال و الیاف", result: "تایید", detail: "ابریشم خالص و پشم دست‌ریس" },
@@ -476,68 +496,85 @@ async function main() {
     });
   }
 
-  // ---------------- Subscription plans (admin model) ----------------
+  // ---------------- Plans (C2C engine, §۴.۳ — values from the scope document) ----------------
   const plans = [
     {
-      id: "bronze",
-      title: "پلن برنزی (۳ ماهه)",
-      tag: "پایه و نوپا",
-      price: 1500000,
-      unit: "تومان / ۳ ماه",
-      artworks: "۱۰ اثر نفیس",
-      support: "پشتیبانی تیکتی ۴۸ ساعته",
-      discount: "بدون تخفیف",
-      features: ["بارگذاری تا ۱۰ اثر در غرفه", "شناسه تایید هویت و اصالت مقدماتی", "پشتیبانی تیکتی استاندارد"],
+      id: "free", slug: "free", title: "پلن رایگان", tag: "شروع بدون هزینه",
+      priceToman: 0, periodDays: 0, maxActiveListings: 3, listingFeeToman: 30000, commissionBps: 1000,
+      features: ["تا ۳ آگهی فعال", "کارمزد ثبت هر آگهی ۳۰٬۰۰۰ تومان", "پروفایل پایه کارگاه", "کارمزد فروش ۱۰٪"],
+      sortOrder: 0,
     },
     {
-      id: "silver",
-      title: "پلن نقره‌ای (۶ ماهه)",
-      tag: "۱۰٪ تخفیف تمدید",
-      price: 2700000,
-      unit: "تومان / ۶ ماه",
-      artworks: "۳۰ اثر برگزیده",
-      support: "پاسخ‌گویی زیر ۱۲ ساعت",
-      discount: "۱۰٪ تخفیف دوره‌ای",
-      features: ["بارگذاری تا ۳۰ اثر برگزیده", "نشان نقره‌ای کارگاه تاییدشده میراث", "اولویت متوسط در فهرست جستجو"],
+      id: "bronze", slug: "bronze", title: "پلن برنز (۳ ماهه)", tag: "پایه و نوپا",
+      priceToman: 1500000, periodDays: 90, maxActiveListings: 10, listingFeeToman: 15000, commissionBps: 1000,
+      features: ["تا ۱۰ آگهی فعال", "کارمزد ثبت هر آگهی ۱۵٬۰۰۰ تومان", "نشان پروفایل و آمار پایه", "کارمزد فروش ۱۰٪"],
+      sortOrder: 1,
     },
     {
-      id: "gold",
-      title: "پلن طلایی سالانه (۱۲ ماهه)",
-      tag: "۲۰٪ تخفیف ویژه سالانه",
-      price: 4800000,
-      unit: "تومان / سالانه",
-      artworks: "نامحدود",
-      support: "پشتیبانی VIP و ارزیاب اختصاصی",
-      discount: "۲۰٪ تخفیف سالانه",
-      features: ["بارگذاری نامحدود آثار هنری", "صفحه اختصاصی کاتالوگ با دامنه", "معرفی در صفحه نخست و ویترین ریشه", "اولویت نخست پیشنهاد به خریداران"],
-      highlight: true,
+      id: "silver", slug: "silver", title: "پلن نقره (۶ ماهه)", tag: "رشد فروش",
+      priceToman: 2700000, periodDays: 180, maxActiveListings: 30, listingFeeToman: 5000, commissionBps: 1000,
+      features: ["تا ۳۰ آگهی فعال", "کارمزد ثبت هر آگهی ۵٬۰۰۰ تومان", "اولویت در فهرست و آمار کامل", "کارمزد فروش ۱۰٪"],
+      sortOrder: 2,
     },
     {
-      id: "national",
-      title: "پلن پیشکسوتان و گنجینه ملی",
-      tag: "ویژه چهره‌های ماندگار",
-      price: 0,
-      unit: "همراهی ویژه",
-      artworks: "نامحدود",
-      support: "ارزیاب اختصاصی و بیمه آثار",
-      discount: "مزایای ویژه ملی",
-      features: ["ویترین ملی پیشکسوتان", "مستندسازی اختصاصی کارگاه", "بیمه حمل و نمایش آثار موزه‌ای"],
+      id: "gold", slug: "gold", title: "پلن طلایی (۱۲ ماهه)", tag: "حرفه‌ای‌ها",
+      priceToman: 4800000, periodDays: 365, maxActiveListings: null, listingFeeToman: 0, commissionBps: 1000,
+      features: ["آگهی فعال نامحدود", "ثبت آگهی بدون کارمزد", "آگهی ویژه، نشان طلایی و آمار کامل", "کارمزد فروش ۱۰٪"],
+      highlight: true, sortOrder: 3,
     },
   ];
   for (const p of plans) {
-    await db.subscriptionPlan.create({ data: { ...p, features: JSON.stringify(p.features) } });
+    await db.plan.create({ data: { ...p, features: JSON.stringify(p.features) } });
   }
+
+  // ---------------- Subscriptions (demo artisans) ----------------
+  const subFor = (sellerId: string, planId: string) =>
+    db.subscription.create({
+      data: {
+        sellerId, planId, status: "ACTIVE",
+        startsAt: new Date(Date.now() - 15 * 24 * 3600 * 1000),
+        expiresAt: new Date(Date.now() + 300 * 24 * 3600 * 1000),
+      },
+    });
+  await Promise.all([
+    subFor(artisan.id, "gold"),
+    subFor(rugMaster.id, "gold"),
+    subFor(esmaili.id, "silver"),
+    subFor(habibian.id, "silver"),
+    subFor(motamedi.id, "bronze"),
+  ]);
 
   // ---------------- Member request (pending artisan) ----------------
   await db.memberRequest.create({
     data: {
       userId: pendingArtisan.id,
-      planId: "silver",
       workshop: "کارگاه سفال و لعاب نظری",
       province: "همدان",
       portfolio: "laljin-pottery.ir/nazari",
       status: "PENDING",
     },
+  });
+
+  // ---------------- Platform settings (tunables — never hardcode in code) ----------------
+  await db.setting.createMany({
+    skipDuplicates: true,
+    data: [
+      { key: "LISTING_ACTIVE_DAYS", value: "60", group: "listing", description: "مدت اعتبار هر آگهی منتشرشده (روز)" },
+      { key: "LISTING_FEE_REFUND_ON_REJECT", value: "true", group: "finance", description: "بازگشت کارمزد ثبت آگهی به‌صورت اعتبار در صورت رد" },
+      { key: "RESERVATION_MINUTES", value: "15", group: "orders", description: "مهلت رزرو موجودی پیش از پرداخت (دقیقه)" },
+      { key: "PENDING_PAYMENT_TTL_MINUTES", value: "60", group: "orders", description: "مهلت پرداخت سفارش پیش از انقضا (دقیقه)" },
+      { key: "RETENTION_DAYS", value: "3", group: "finance", description: "دوره نگهداری وجه فروشنده پس از تحویل (روز)" },
+      { key: "DEFAULT_COMMISSION_BPS", value: "1000", group: "finance", description: "کارمزد فروش پیش‌فرض (نقطه‌اساس: ۱۰۰۰ = ۱۰٪)" },
+    ],
+  });
+
+  // ---------------- Shipping methods (from DB, not code) ----------------
+  await db.shippingMethod.createMany({
+    data: [
+      { slug: "free", title: "ارسال رایگان بیمه‌شده ریشه", description: "بیمه کامل مرسول؛ تحویل ۳ تا ۷ روز کاری", priceToman: 0, sortOrder: 0 },
+      { slug: "courier", title: "پیک اختصاصی و بیمه‌شده ریشه", description: "تحویل سریع درون‌شهری", priceToman: 50000, sortOrder: 1 },
+      { slug: "tipax", title: "ارسال سریع تیپاکس سراسری", description: "تحویل ۲ تا ۴ روز کاری", priceToman: 75000, sortOrder: 2 },
+    ],
   });
 
   // ---------------- Blog ----------------
@@ -660,7 +697,8 @@ async function main() {
       subtotal,
       shipping,
       total: subtotal + shipping,
-      status: "PAID",
+      status: "PREPARING",
+      shippingMethodId: (await db.shippingMethod.findFirstOrThrow({ where: { slug: "free" } })).id,
     },
   });
   for (const c of cartArtworks) {
@@ -676,10 +714,26 @@ async function main() {
       },
     });
   }
-  await db.paymentAttempt.create({
+  const orderItems = await db.orderItem.findMany({ where: { orderId: order.id } });
+
+  // Invoice + payment (labeled demo) + per-seller sub-orders + ledger (M8)
+  const invoice = await db.invoice.create({
     data: {
+      number: "RSH-INV-1001",
+      payerId: buyer.id,
+      kind: "ORDER",
+      status: "PAID",
+      amount: subtotal + shipping,
+      description: `پرداخت سفارش ${order.orderNumber} (نمایشی)`,
       orderId: order.id,
-      gateway: "DEMO",
+      paidAt: new Date(),
+    },
+  });
+  const attempt = await db.paymentAttempt.create({
+    data: {
+      invoiceId: invoice.id,
+      orderId: order.id,
+      provider: "demo",
       authority: "DEMO-AUTH-1001",
       amount: subtotal + shipping,
       status: "SUCCESS",
@@ -688,8 +742,43 @@ async function main() {
       verifiedAt: new Date(),
     },
   });
-  await db.trackingEvent.create({
-    data: { orderId: order.id, status: "PAID", detail: "پرداخت تایید شد؛ سفارش در صف آماده‌سازی کارگاه قرار گرفت.", actor: "سامانه" },
+  await db.paymentEvent.create({
+    data: { paymentAttemptId: attempt.id, type: "VERIFY_SUCCESS", detail: "تایید نمایشی درگاه دمو", payload: "{\"simulated\":true}" },
+  });
+
+  // One SellerOrder per seller + proportional ledger entries
+  const goldPlan = await db.plan.findUniqueOrThrow({ where: { id: "gold" } });
+  const bySeller = new Map<string, typeof orderItems>();
+  for (const it of orderItems) {
+    const list = bySeller.get(it.sellerId) ?? [];
+    list.push(it);
+    bySeller.set(it.sellerId, list);
+  }
+  for (const [sellerId, items] of bySeller) {
+    const gross = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+    const commission = Math.round((gross * goldPlan.commissionBps) / 10000);
+    const so = await db.sellerOrder.create({
+      data: {
+        orderId: order.id, sellerId, status: "PREPARING", gross,
+        discountShare: 0, net: gross, commission, shippingShare: 0, paidAt: new Date(),
+      },
+    });
+    await db.orderItem.updateMany({ where: { id: { in: items.map((i) => i.id) } }, data: { sellerOrderId: so.id } });
+    await db.ledgerEntry.createMany({
+      data: [
+        { sellerId, orderId: order.id, sellerOrderId: so.id, kind: "SALE", amount: gross, status: "PENDING", detail: `فروش اقلام سفارش ${order.orderNumber} (در انتظار تحویل)` },
+        { sellerId, orderId: order.id, sellerOrderId: so.id, kind: "COMMISSION", amount: -commission, status: "CLEARED", detail: `کارمزد فروش پلتفرم سفارش ${order.orderNumber}` },
+      ],
+    });
+    await db.platformRevenueEntry.create({
+      data: { kind: "COMMISSION", amount: commission, sellerId, orderId: order.id, sellerOrderId: so.id, detail: `کارمزد فروش سفارش ${order.orderNumber}` },
+    });
+  }
+  await db.orderEvent.createMany({
+    data: [
+      { orderId: order.id, type: "PAYMENT", status: "PAID", detail: "پرداخت (نمایشی) تایید شد؛ سفارش در صف آماده‌سازی کارگاه‌ها قرار گرفت.", actor: "درگاه نمایشی ریشه" },
+      { orderId: order.id, type: "STATUS", status: "PREPARING", detail: "سفارش در کارگاه در حال آماده‌سازی و بسته‌بندی است.", actor: "سامانه" },
+    ],
   });
 
   // ---------------- Cart items for buyer (as in cart-checkout source) ----------------
@@ -709,16 +798,14 @@ async function main() {
     },
   });
 
-  // ---------------- Ledger & settlements for artisan ----------------
+  // ---------------- Ledger & payout for artisan ----------------
   await db.ledgerEntry.createMany({
     data: [
-      { sellerId: artisan.id, orderId: order.id, kind: "SALE", amount: 1890000, detail: "فروش گلدان میناکاری — سفارش RSH-ORD-1001", status: "CLEARED" },
-      { sellerId: artisan.id, kind: "COMMISSION", amount: -189000, detail: "کارمزد پلتفرم (۱۰٪) سفارش RSH-ORD-1001", status: "CLEARED" },
       { sellerId: artisan.id, kind: "PAYOUT", amount: -1200000, detail: "واریز شبا IR420170000000123456789001 — تسویه دوره قبل", status: "CLEARED" },
-      { sellerId: artisan.id, kind: "SALE", amount: 2200000, detail: "فروش جعبه خاتم‌کاری — سفارش دوره جاری", status: "PENDING" },
+      { sellerId: artisan.id, kind: "SALE", amount: 2200000, status: "HOLDING", availableAt: new Date(Date.now() + 3 * 24 * 3600 * 1000), detail: "فروش جعبه خاتم‌کاری — در دوره نگهداری" },
     ],
   });
-  await db.settlementRequest.create({
+  await db.payoutRequest.create({
     data: {
       sellerId: artisan.id,
       amount: 1850000,
@@ -917,7 +1004,7 @@ async function main() {
     artworks: await db.artwork.count(),
     authenticity: await db.authenticityRecord.count(),
     blog: await db.blogPost.count(),
-    plans: await db.subscriptionPlan.count(),
+    plans: await db.plan.count(),
   };
   console.log("Seed complete:", counts);
 }

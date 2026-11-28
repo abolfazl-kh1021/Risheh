@@ -118,7 +118,7 @@ export function CategoriesView({ data, navigate, onAddToCart, onToggleFavorite, 
   const hero = HERO_COPY[param] ?? HERO_COPY.all;
 
   const results = useMemo(() => {
-    let list = data.artworks.filter((a) => param === "all" || a.categorySlug === param);
+    let list = (data.artworks ?? []).filter((a) => param === "all" || a.categorySlug === param);
     if (debouncedSearch.trim()) {
       const needle = debouncedSearch.trim();
       list = list.filter(

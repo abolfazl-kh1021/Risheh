@@ -60,16 +60,16 @@ function ArtisanDashboard({ data, navigate, refresh }: Props) {
   const user = data.user!;
   const artworks = data.myArtworks ?? [];
   const published = artworks.filter((a) => a.status === "PUBLISHED").length;
-  const pending = artworks.filter((a) => a.status === "PENDING").length;
+  const pending = artworks.filter((a) => a.status === "PENDING_REVIEW").length;
   const orders = data.artisanOrders ?? [];
   const needShip = orders.filter((o) => o.status === "PAID" || o.status === "PREPARING").length;
   const ledger = data.ledger ?? [];
   const gross = ledger.filter((l) => l.kind === "SALE").reduce((s, l) => s + l.amount, 0);
   const cleared = ledger.filter((l) => l.status === "CLEARED").reduce((s, l) => s + l.amount, 0);
-  const pendingSettle = (data.settlements ?? [])
+  const locked = (data.payouts ?? [])
     .filter((s) => s.status === "PENDING" || s.status === "APPROVED")
     .reduce((s, l) => s + l.amount, 0);
-  const available = Math.max(0, cleared - pendingSettle);
+  const available = Math.max(0, cleared - locked);
   const rating = published > 0 ? artworks.reduce((s, a) => s + a.rating, 0) / Math.max(1, published) : 0;
 
   const stats = [

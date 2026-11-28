@@ -15,36 +15,220 @@ datasource db {
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
-// ============ Users & Auth ============
+// ============================================================================
+// Enums — all machine states are database-level enums (Scope: known-issue fix
+// «وضعیت‌ها String (نه enum)»). Never store a status that is not in its enum.
+// ============================================================================
+
+enum Role {
+  BUYER
+  ARTISAN
+  ADMIN
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  EXPIRED
+  ARCHIVED
+  SOLD
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  PAYMENT_FAILED
+  EXPIRED
+}
+
+enum SellerOrderStatus {
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELED
+}
+
+/**
+ * Outcome chosen on the DEMO gateway page, stored server-side. The demo
+ * provider's verify() reads THIS field — a client query parameter is never
+ * treated as the payment result.
+ */
+enum DemoOutcome {
+  SUCCESS
+  FAILED
+  CANCELED
+}
+
+enum InvoiceKind {
+  ORDER
+  LISTING_FEE
+  SUBSCRIPTION
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELED
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RECEIVED
+  REFUNDED
+}
+
+enum StockReservationStatus {
+  ACTIVE
+  CONVERTED
+  RELEASED
+  EXPIRED
+}
+
+enum LedgerKind {
+  SALE
+  COMMISSION
+  PAYOUT
+  LISTING_FEE_REFUND
+  ADJUSTMENT
+}
+
+enum LedgerStatus {
+  /**
+   * Seller earned it, but the order is not delivered yet (شبه‌escrow ۱/۳).
+   */
+  PENDING
+  /**
+   * Delivered; held during the retention window (شبه‌escrow ۲/۳).
+   */
+  HOLDING
+  /**
+   * Withdrawable (شبه‌escrow ۳/۳).
+   */
+  CLEARED
+}
+
+enum RevenueKind {
+  LISTING_FEE
+  SUBSCRIPTION
+  COMMISSION
+}
+
+enum MemberRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LabRequestStatus {
+  NEW
+  SCHEDULED
+  DONE
+  REJECTED
+}
+
+enum AuthStatus {
+  VERIFIED
+  PENDING
+  REJECTED
+}
+
+enum LabStatus {
+  QUEUED
+  IN_LAB
+  TESTS_DONE
+  ISSUED
+}
+
+enum DiscountKind {
+  PERCENT
+  FIXED
+}
+
+enum DiscountAudience {
+  ALL
+  BUYER
+  ARTISAN
+}
+
+enum RedemptionStatus {
+  CLAIMED
+  APPLIED
+}
+
+// ============================================================================
+// Users & Auth
+// ============================================================================
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String
-  phone         String?
-  role          String   @default("BUYER") // BUYER | ARTISAN | ADMIN
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         Role     @default(BUYER)
+  slug         String?  @unique // artisan public page: /artisans/[slug]
   // Artisan (seller) profile fields
-  shopTitle     String?  // e.g. کارگاه و نگارخانه استاد سهراب سپهری‌راد
-  province      String?
-  bio           String?
-  avatar        String?
-  planId        String?
-  verified      Boolean  @default(false) // artisan identity verified
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  shopTitle    String?
+  province     String?
+  bio          String?
+  avatar       String?
+  iban         String? // payout IBAN (demo only — validated Sheba)
+  verified     Boolean  @default(false) // artisan identity verified
+  suspended    Boolean  @default(false) // admin moderation
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  artworks      Artwork[]
-  orders        Order[]         @relation("buyerOrders")
-  cartItems     CartItem[]
-  favorites     Favorite[]
-  reviews       Review[]
-  settlements   SettlementRequest[]
-  memberRequest MemberRequest?
-  labRequests   LabRequest[]
-  sessions      Session[]
+  artworks            Artwork[]
+  orders              Order[]              @relation("buyerOrders")
+  cartItems           CartItem[]
+  favorites           Favorite[]
+  reviews             Review[]
+  memberRequest       MemberRequest?
+  labRequests         LabRequest[]
+  sessions            Session[]
+  addresses           Address[]
+  notifications       Notification[]
+  invoices            Invoice[]
+  subscriptions       Subscription[]
+  sellerOrders        SellerOrder[]
+  ledgerEntries       LedgerEntry[]
+  payouts             PayoutRequest[]
+  returns             ReturnRequest[]
   discountRedemptions DiscountRedemption[]
 
+  @@index([role])
   @@map("users")
 }
 
@@ -53,81 +237,100 @@ model Session {
   token     String   @unique
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip        String?
+  userAgent String?
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   @@index([token])
+  @@index([expiresAt]) // cron purge of expired sessions
+  @@index([userId])
   @@map("sessions")
 }
 
-// ============ Catalog ============
+// ============================================================================
+// Catalog
+// ============================================================================
 
 model Category {
-  id        String  @id @default(cuid())
-  slug      String  @unique
-  title     String
-  tagline   String?
-  image     String?
-  order     Int     @default(0)
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  title   String
+  tagline String?
+  image   String?
+  order   Int     @default(0)
 
-  artworks  Artwork[]
+  artworks Artwork[]
 
   @@map("categories")
 }
 
 model Artwork {
-  id              String   @id @default(cuid())
-  code            String   @unique // شناسه RSH-XXXX
-  slug            String   @unique
-  title           String
-  sellerId        String
-  seller          User     @relation(fields: [sellerId], references: [id])
-  categoryId      String
-  category        Category @relation(fields: [categoryId], references: [id])
-  description     String
-  story           String?  // روایت اثر
-  price           Int      // Toman
-  compareAtPrice  Int?     // for discount display
-  images          String   @default("[]") // JSON array of /assets/img/... paths
-  materials       String?
-  dimensions      String?
-  yearMade        String?
-  province        String?
-  stock           Int      @default(1)
-  status          String   @default("DRAFT") // DRAFT | PENDING | PUBLISHED | REJECTED | ARCHIVED | SOLD
-  featured        Boolean  @default(false)
-  rating          Float    @default(0)
-  ratingCount     Int      @default(0)
-  sizes           String?  // JSON size variants
-  colors          String?  // JSON color variants
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String        @id @default(cuid())
+  code           String        @unique // شناسه RSH-XXXXX
+  slug           String        @unique
+  title          String
+  sellerId       String
+  seller         User          @relation(fields: [sellerId], references: [id])
+  categoryId     String
+  category       Category      @relation(fields: [categoryId], references: [id])
+  description    String
+  story          String? // روایت اثر (M2)
+  price          Int // Toman
+  compareAtPrice Int?
+  images         String        @default("[]") // JSON array of /assets/img/... or /uploads/...
+  materials      String?
+  dimensions     String?
+  yearMade       String?
+  province       String?
+  stock          Int           @default(1)
+  status         ListingStatus @default(DRAFT)
+  featured       Boolean       @default(false)
+  rating         Float         @default(0)
+  ratingCount    Int           @default(0)
+  sizes          String? // JSON size variants
+  colors         String? // JSON color variants
 
-  authenticity    AuthenticityRecord?
-  orderItems      OrderItem[]
-  cartItems       CartItem[]
-  favorites       Favorite[]
-  reviews         Review[]
-  labRequests     LabRequest[]
-  discountLinks   DiscountArtwork[]
+  reviewNote  String? // rejection reason shown to the seller
+  publishedAt DateTime?
+  expiresAt   DateTime? // listing validity window (Setting LISTING_ACTIVE_DAYS)
+  deletedAt   DateTime? // soft delete (never hard-delete audited data)
 
-  @@index([sellerId])
-  @@index([categoryId])
-  @@index([status])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  authenticity  AuthenticityRecord?
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  favorites     Favorite[]
+  reviews       Review[]
+  labRequests   LabRequest[]
+  discountLinks DiscountArtwork[]
+  reservations  StockReservation[]
+  invoices      Invoice[]
+
+  @@index([sellerId, status])
+  @@index([status, createdAt]) // catalog queries (M1)
+  @@index([categoryId, status])
+  @@index([expiresAt])
   @@map("artworks")
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  artworkId String
-  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  rating    Int
-  comment   String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  artworkId   String
+  artwork     Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  orderItemId String?  @unique // one review per delivered purchase (S2)
+  rating      Int
+  comment     String
+  sellerReply String? // [Extra] seller response to the review
+  reported    Boolean  @default(false) // [Extra] buyer/admin report flag
+  createdAt   DateTime @default(now())
 
   @@index([artworkId])
+  @@index([userId])
   @@map("reviews")
 }
 
@@ -144,68 +347,73 @@ model Favorite {
   @@map("favorites")
 }
 
-// ============ Authenticity ============
+// ============================================================================
+// Authenticity (digital record only — no physical lab claims, M10)
+// ============================================================================
 
 model AuthenticityRecord {
-  id            String   @id @default(cuid())
-  artworkId     String   @unique
-  artwork       Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
-  hologramCode  String   @unique // e.g. RSH-9834-HOLO
-  status        String   @default("PENDING") // VERIFIED | PENDING | REJECTED
-  labStatus     String   @default("QUEUED") // QUEUED | IN_LAB | TESTS_DONE | ISSUED
-  tests         String   @default("[]") // JSON [{name, result, detail}]
-  inspector     String?
-  issuedAt      DateTime?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  artworkId    String     @unique
+  artwork      Artwork    @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  hologramCode String     @unique // e.g. RSH-9834-HOLO
+  status       AuthStatus @default(PENDING)
+  labStatus    LabStatus  @default(QUEUED)
+  tests        String     @default("[]") // JSON [{name, result, detail}]
+  inspector    String?
+  issuedAt     DateTime?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  events        VerificationEvent[]
+  events VerificationEvent[]
 
+  @@index([status])
   @@map("authenticity_records")
 }
 
 model VerificationEvent {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   recordId  String
   record    AuthenticityRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
   actor     String
   action    String
   detail    String?
-  createdAt DateTime @default(now())
+  createdAt DateTime           @default(now())
 
   @@index([recordId])
   @@map("verification_events")
 }
 
 model LabRequest {
-  id        String   @id @default(cuid())
-  artworkId String
-  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
-  sellerId  String
-  seller    User     @relation(fields: [sellerId], references: [id])
-  kind      String   // SAMPLE_SEND | PHOTO_SESSION
+  id            String           @id @default(cuid())
+  artworkId     String
+  artwork       Artwork          @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  sellerId      String
+  seller        User             @relation(fields: [sellerId], references: [id])
+  kind          String // SAMPLE_SEND | PHOTO_SESSION
   preferredDate String?
-  note      String?
-  status    String   @default("NEW") // NEW | SCHEDULED | DONE | REJECTED
-  createdAt DateTime @default(now())
+  note          String?
+  status        LabRequestStatus @default(NEW)
+  createdAt     DateTime         @default(now())
 
   @@index([sellerId])
   @@index([artworkId])
   @@map("lab_requests")
 }
 
-// ============ Cart & Orders ============
+// ============================================================================
+// Cart
+// ============================================================================
 
 model CartItem {
   id        String   @id @default(cuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  guestKey  String?  // anonymous cart cookie key
+  guestKey  String? // anonymous cart cookie key
   artworkId String
   artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
   quantity  Int      @default(1)
-  variant   String?  // chosen size/color JSON
+  variant   String? // chosen size/color JSON
   createdAt DateTime @default(now())
 
   @@index([userId])
@@ -213,113 +421,403 @@ model CartItem {
   @@map("cart_items")
 }
 
+// ============================================================================
+// Orders — multi-seller: Order ⇒ SellerOrder per seller (§۴.۴)
+// ============================================================================
+
 model Order {
-  id           String   @id @default(cuid())
-  orderNumber  String   @unique // RSH-ORD-XXXX
-  buyerId      String?
-  buyer        User?    @relation("buyerOrders", fields: [buyerId], references: [id])
-  buyerName    String
-  buyerPhone   String
-  address      String
-  city         String
-  postalCode   String?
-  note         String?
-  subtotal     Int      // server-computed, Toman
-  discount     Int      @default(0) // server-computed from a validated DiscountCode (S7)
-  discountCodeId String? // applied discount code (nullable, SetNull) — additive migration 20261127190000
-  shipping     Int      @default(0)
-  total        Int      // server-computed
-  status       String   @default("PENDING_PAYMENT") // PENDING_PAYMENT | PAID | PREPARING | SHIPPED | DELIVERED | CANCELLED | PAYMENT_FAILED
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String          @id @default(cuid())
+  orderNumber      String          @unique // RSH-ORD-XXXXXXXX-XXXX
+  buyerId          String?
+  buyer            User?           @relation("buyerOrders", fields: [buyerId], references: [id], onDelete: SetNull)
+  buyerName        String
+  buyerPhone       String // guest tracking key (orderNumber + phone, rate-limited)
+  address          String
+  city             String
+  postalCode       String?
+  note             String?
+  shippingMethodId String?
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  subtotal         Int // server-computed, Toman
+  discount         Int             @default(0) // server-computed from a validated DiscountCode (S7)
+  discountCodeId   String?
+  discountCode     DiscountCode?   @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+  shipping         Int             @default(0)
+  total            Int // server-computed
+  status           OrderStatus     @default(PENDING_PAYMENT)
+  guestKey         String? // anonymous checkout identity (cart clear + guest tracking)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   items        OrderItem[]
+  sellerOrders SellerOrder[]
   payments     PaymentAttempt[]
-  tracking     TrackingEvent[]
-  discountCode DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+  events       OrderEvent[]
+  reservations StockReservation[]
+  invoices     Invoice[]
 
-  @@index([buyerId])
+  @@index([status, createdAt])
+  @@index([buyerId, createdAt])
+  @@index([guestKey])
   @@map("orders")
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  artworkId String
-  artwork   Artwork @relation(fields: [artworkId], references: [id])
-  titleSnapshot String
-  imageSnapshot String
-  unitPrice Int     // server-verified price at purchase time
-  quantity  Int
-  sellerId  String
+  id             String          @id @default(cuid())
+  orderId        String
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  artworkId      String
+  artwork        Artwork         @relation(fields: [artworkId], references: [id])
+  titleSnapshot  String
+  imageSnapshot  String
+  unitPrice      Int // server-verified price at purchase time
+  quantity       Int
+  sellerId       String
+  sellerOrderId  String?
+  sellerOrder    SellerOrder?    @relation(fields: [sellerOrderId], references: [id], onDelete: SetNull)
+  returnRequests ReturnRequest[]
 
   @@index([orderId])
   @@index([sellerId])
+  @@index([sellerOrderId])
+  @@index([artworkId])
   @@map("order_items")
 }
 
+/**
+ * One sub-order per seller inside a parent order: independent fulfilment,
+ * independent commission, independent timeline (C2C requirement).
+ */
+model SellerOrder {
+  id            String            @id @default(cuid())
+  orderId       String
+  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerId      String
+  seller        User              @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  status        SellerOrderStatus @default(PAID)
+  gross         Int // items gross sum (server-computed)
+  discountShare Int // allocated proportional discount share (largest-remainder)
+  net           Int // gross - discountShare
+  commission    Int // plan commission rate × net (rounded, plan-driven)
+  shippingShare Int
+  paidAt        DateTime?
+  preparedAt    DateTime?
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  items         OrderItem[]
+  events        OrderEvent[]
+  ledgerEntries LedgerEntry[]
+
+  @@unique([orderId, sellerId])
+  @@index([sellerId, status])
+  @@index([orderId])
+  @@map("seller_orders")
+}
+
+/**
+ * Timeline events for buyer tracking (M7). One row per state change.
+ */
+model OrderEvent {
+  id            String       @id @default(cuid())
+  orderId       String
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerOrderId String?
+  sellerOrder   SellerOrder? @relation(fields: [sellerOrderId], references: [id], onDelete: SetNull)
+  type          String // STATUS | PAYMENT | RETURN | NOTE
+  status        String?
+  detail        String?
+  actor         String
+  createdAt     DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([sellerOrderId])
+  @@map("order_events")
+}
+
+// ============================================================================
+// Payments — one boundary for every paid flow (order / listing fee / plan)
+// ============================================================================
+
+model Invoice {
+  id           String        @id @default(cuid())
+  number       String        @unique // RSH-INV-XXXXXXXX-XXXX
+  payerId      String
+  payer        User          @relation(fields: [payerId], references: [id], onDelete: Cascade)
+  kind         InvoiceKind
+  status       InvoiceStatus @default(PENDING)
+  amount       Int
+  description  String
+  orderId      String?
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  listingId    String?
+  listing      Artwork?      @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  subscription Subscription?
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  attempts PaymentAttempt[]
+
+  @@index([payerId, createdAt])
+  @@index([status])
+  @@index([orderId])
+  @@map("invoices")
+}
+
 model PaymentAttempt {
-  id          String   @id @default(cuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  gateway     String   @default("DEMO") // DEMO adapter — clearly labeled simulation
-  authority   String   @unique // demo gateway token
+  id          String        @id @default(cuid())
+  invoiceId   String?
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  orderId     String?
+  order       Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider    String        @default("demo") // PaymentProvider.name — demo is labeled
+  authority   String        @unique // provider-issued token
   amount      Int
-  status      String   @default("PENDING") // PENDING | SUCCESS | FAILED | CANCELLED
+  status      PaymentStatus @default(PENDING)
+  demoOutcome DemoOutcome? // DEMO ONLY: chosen on the demo gateway page, stored server-side
   refNumber   String?
   message     String?
-  createdAt   DateTime @default(now())
+  callbackAt  DateTime?
   verifiedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  events PaymentEvent[]
 
   @@index([orderId])
+  @@index([invoiceId])
+  @@index([status, createdAt])
   @@map("payment_attempts")
 }
 
-model TrackingEvent {
-  id        String   @id @default(cuid())
-  orderId   String
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status    String
-  detail    String?
-  actor     String
-  createdAt DateTime @default(now())
+/**
+ * Immutable audit trail of every payment result decision (M6).
+ */
+model PaymentEvent {
+  id               String         @id @default(cuid())
+  paymentAttemptId String
+  attempt          PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Cascade)
+  type             String // REQUESTED | CALLBACK | VERIFY_SUCCESS | VERIFY_FAILED | VERIFY_CANCELED | EXPIRED | REFUND
+  detail           String?
+  payload          String? // provider raw response (JSON) — demo payloads only
+  createdAt        DateTime       @default(now())
 
-  @@map("tracking_events")
+  @@index([paymentAttemptId])
+  @@map("payment_events")
 }
 
-// ============ Finance ============
+/**
+ * 15-minute stock hold between order creation and payment finalization.
+ */
+model StockReservation {
+  id         String                 @id @default(cuid())
+  orderId    String
+  order      Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  artworkId  String
+  artwork    Artwork                @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  quantity   Int
+  status     StockReservationStatus @default(ACTIVE)
+  expiresAt  DateTime
+  releasedAt DateTime?
+  createdAt  DateTime               @default(now())
+
+  @@index([artworkId, status]) // available-stock math = stock − active reservations
+  @@index([expiresAt]) // cron expiry sweep
+  @@index([orderId])
+  @@map("stock_reservations")
+}
+
+// ============================================================================
+// Plans & subscriptions (C2C engine — complete rewrite, §۴.۳)
+// ============================================================================
+
+model Plan {
+  id                String   @id // free | bronze | silver | gold
+  slug              String   @unique
+  title             String
+  tag               String?
+  priceToman        Int      @default(0)
+  periodDays        Int      @default(0) // 0 = unlimited (Free); 90/180/365
+  maxActiveListings Int? // null = unlimited
+  listingFeeToman   Int      @default(30000)
+  commissionBps     Int      @default(1000) // basis points: 1000 = ۱۰٪
+  features          String   @default("[]") // JSON string[]
+  highlight         Boolean  @default(false)
+  active            Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  sellerId  String
+  seller    User               @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      Plan               @relation(fields: [planId], references: [id])
+  status    SubscriptionStatus @default(PENDING)
+  startsAt  DateTime
+  expiresAt DateTime
+  invoiceId String?            @unique
+  invoice   Invoice?           @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([sellerId, status])
+  @@index([planId])
+  @@index([expiresAt]) // cron downgrade sweep
+  @@map("subscriptions")
+}
+
+// ============================================================================
+// Finance — ledger, revenue, payouts (§۴.۵)
+// ============================================================================
 
 model LedgerEntry {
-  id        String   @id @default(cuid())
-  sellerId  String
-  orderId   String?
-  kind      String   // SALE | COMMISSION | PAYOUT | SUBSCRIPTION
-  amount    Int      // positive = credit, negative = debit (Toman)
-  detail    String?
-  status    String   @default("CLEARED") // CLEARED | PENDING
-  createdAt DateTime @default(now())
+  id            String       @id @default(cuid())
+  sellerId      String
+  seller        User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  orderId       String?
+  sellerOrderId String?
+  sellerOrder   SellerOrder? @relation(fields: [sellerOrderId], references: [id], onDelete: SetNull)
+  kind          LedgerKind
+  amount        Int // positive = credit, negative = debit (Toman)
+  status        LedgerStatus @default(CLEARED)
+  availableAt   DateTime? // HOLDING → CLEARED after retention days
+  detail        String?
+  createdAt     DateTime     @default(now())
 
-  @@index([sellerId])
+  @@index([sellerId, createdAt])
+  @@index([sellerId, status]) // balance queries
+  @@index([availableAt]) // cron release sweep
   @@map("ledger_entries")
 }
 
-model SettlementRequest {
-  id        String   @id @default(cuid())
-  sellerId  String
-  seller    User     @relation(fields: [sellerId], references: [id])
-  amount    Int
-  iban      String
-  status    String   @default("PENDING") // PENDING | APPROVED | PAID | REJECTED
-  adminNote String?
-  createdAt DateTime @default(now())
-  decidedAt DateTime?
+model PlatformRevenueEntry {
+  id            String      @id @default(cuid())
+  kind          RevenueKind
+  amount        Int // Toman, always ≥ 0
+  sellerId      String?
+  orderId       String?
+  sellerOrderId String?
+  invoiceId     String?
+  detail        String?
+  createdAt     DateTime    @default(now())
 
-  @@index([sellerId])
-  @@map("settlement_requests")
+  @@index([kind, createdAt]) // admin range report + CSV
+  @@map("platform_revenue_entries")
 }
 
-// ============ Content ============
+model PayoutRequest {
+  id        String       @id @default(cuid())
+  sellerId  String
+  seller    User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  amount    Int
+  iban      String
+  status    PayoutStatus @default(PENDING)
+  adminNote String?
+  reference String? // demo payout reference (labeled)
+  decidedAt DateTime?
+  paidAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  @@index([sellerId, status])
+  @@map("payout_requests")
+}
+
+model ReturnRequest {
+  id            String       @id @default(cuid())
+  orderItemId   String
+  item          OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  sellerOrderId String?
+  buyerId       String
+  buyer         User         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  reason        String
+  detail        String?
+  status        ReturnStatus @default(PENDING)
+  resolution    String?
+  decidedAt     DateTime?
+  refundedAt    DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([buyerId])
+  @@index([sellerOrderId])
+  @@map("return_requests")
+}
+
+model Address {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  receiverName String
+  phone        String
+  province     String
+  city         String
+  postalCode   String?
+  line1        String
+  isDefault    Boolean   @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // ORDER | ARTWORK | PLAN | PAYOUT | ADMIN | REVIEW
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model ShippingMethod {
+  id          String  @id @default(cuid())
+  slug        String  @unique // free | courier | tipax
+  title       String
+  description String?
+  priceToman  Int     @default(0)
+  active      Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  orders Order[]
+
+  @@map("shipping_methods")
+}
+
+// ============================================================================
+// Platform settings — every tunable number lives here, never in code (§۲.۱)
+// ============================================================================
+
+model Setting {
+  key         String   @id
+  value       String
+  group       String   @default("general") // general | finance | listing | orders
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ============================================================================
+// Content
+// ============================================================================
 
 model BlogPost {
   id        String   @id @default(cuid())
@@ -346,37 +844,20 @@ model ContactMessage {
   handled   Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  @@index([handled])
   @@map("contact_messages")
 }
 
-// ============ Artisan subscriptions (admin model) ============
-
-model SubscriptionPlan {
-  id        String  @id // bronze | silver | gold | national
-  title     String
-  tag       String?
-  price     Int
-  unit      String
-  artworks  String
-  support   String
-  discount  String
-  features  String  @default("[]") // JSON
-  highlight Boolean @default(false)
-
-  @@map("subscription_plans")
-}
-
 model MemberRequest {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId    String
+  id        String              @id @default(cuid())
+  userId    String              @unique
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   workshop  String
   province  String
   portfolio String?
-  status    String   @default("PENDING") // PENDING | APPROVED | REJECTED
-  createdAt DateTime @default(now())
+  status    MemberRequestStatus @default(PENDING)
   decidedAt DateTime?
+  createdAt DateTime            @default(now())
 
   @@map("member_requests")
 }
@@ -390,19 +871,18 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([action])
   @@map("audit_logs")
 }
 
-// ============ Discounts & occasion campaigns ============
+// ============================================================================
+// Discounts & occasion campaigns (S7)
+// ============================================================================
 
-/**
- * A curated occasion campaign (یلدا، نوروز، هفته میراث…) — the admin
- * (optionally with participating artisans) pins artworks to it.
- */
 model DiscountCampaign {
   id          String   @id @default(cuid())
   title       String
-  occasion    String // نوروز | یلدا | هفته میراث …
+  occasion    String
   description String?
   startsAt    DateTime
   endsAt      DateTime
@@ -415,29 +895,25 @@ model DiscountCampaign {
   @@map("discount_campaigns")
 }
 
-/**
- * A discount code — percent or fixed Toman, with caps, audience scope and
- * usage limits. Codes may belong to a campaign (occasion) or stand alone.
- */
 model DiscountCode {
-  id           String    @id @default(cuid())
+  id           String            @id @default(cuid())
   campaignId   String?
   campaign     DiscountCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  code         String    @unique // e.g. YALDA-1405
+  code         String            @unique
   title        String
   description  String?
-  kind         String    @default("PERCENT") // PERCENT | FIXED
-  amount       Int // percent (1-100) or Toman for FIXED
-  maxPrice     Int? // cap on the discount amount (Toman) for PERCENT
-  minPrice     Int? // minimum cart total to apply (Toman)
-  audience     String    @default("ALL") // ALL | BUYER | ARTISAN
-  maxUses      Int       @default(100)
-  usedCount    Int       @default(0)
-  perUserLimit Int       @default(1)
+  kind         DiscountKind      @default(PERCENT)
+  amount       Int
+  maxPrice     Int?
+  minPrice     Int?
+  audience     DiscountAudience  @default(ALL)
+  maxUses      Int               @default(100)
+  usedCount    Int               @default(0)
+  perUserLimit Int               @default(1)
   startsAt     DateTime?
   expiresAt    DateTime?
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
+  active       Boolean           @default(true)
+  createdAt    DateTime          @default(now())
 
   redemptions DiscountRedemption[]
   orders      Order[]
@@ -446,22 +922,20 @@ model DiscountCode {
   @@map("discount_codes")
 }
 
-/** One row per code claim/use by a user (perUserLimit rows max per user). */
 model DiscountRedemption {
-  id        String       @id @default(cuid())
+  id        String           @id @default(cuid())
   codeId    String
-  code      DiscountCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  code      DiscountCode     @relation(fields: [codeId], references: [id], onDelete: Cascade)
   userId    String
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status    String       @default("CLAIMED") // CLAIMED | APPLIED
-  createdAt DateTime     @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    RedemptionStatus @default(CLAIMED)
+  createdAt DateTime         @default(now())
 
   @@index([codeId, userId])
   @@index([userId])
   @@map("discount_redemptions")
 }
 
-/** Join table: artworks pinned to an occasion campaign. */
 model DiscountArtwork {
   id         String           @id @default(cuid())
   campaignId String
@@ -473,4 +947,17 @@ model DiscountArtwork {
   @@unique([campaignId, artworkId])
   @@index([artworkId])
   @@map("discount_artworks")
+}
+
+// ============================================================================
+// Infrastructure — Postgres-backed rate limiting (serverless-safe)
+// ============================================================================
+
+model RateLimitBucket {
+  key     String   @id // e.g. "login|ip:1.2.3.4|user:a@b.c"
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt]) // cron sweep of stale buckets
+  @@map("rate_limit_buckets")
 }

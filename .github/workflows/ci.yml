@@ -1,15 +1,3 @@
-# =============================================================================
-# Risheh — CI/CD (PostgreSQL edition)
-#
-# Job 1 (quality): install → prisma generate → migrations against a Postgres 16
-#                  service container → lint → production build
-# Job 2 (docker):  multi-stage image build → container smoke test (with its own
-#                  Postgres 16 service) → publish to GHCR on pushes to main
-#
-# Note: the build is executed in CI because the dev sandbox cannot run
-# `next build` (dev server owns the port). A green CI = a verified production
-# build, which the handoff docs flag as a required pre-deploy step.
-# =============================================================================
 name: CI
 
 on:
@@ -17,133 +5,124 @@ on:
     branches: [main]
   pull_request:
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  BUN_VERSION: "1.2.23"
-
 jobs:
   quality:
-    name: Lint & build
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: risheh
-          POSTGRES_PASSWORD: risheh_ci
-          POSTGRES_DB: risheh
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: risheh_test
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
-          --health-cmd "pg_isready -U risheh -d risheh"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://risheh:risheh_ci@127.0.0.1:5432/risheh?sslmode=disable&connection_limit=10
-      DIRECT_DATABASE_URL: postgresql://risheh:risheh_ci@127.0.0.1:5432/risheh?sslmode=disable
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/risheh_test
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/risheh_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/risheh_test
+      AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      DEMO_MODE: "true"
     steps:
       - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          bun-version: latest
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Prisma — generate client & apply migrations
-        run: |
-          bunx prisma generate
-          bunx prisma migrate deploy
-
-      - name: Lint
+      - name: Lint (0 errors required)
         run: bun run lint
 
-      - name: Build (production)
-        env:
-          AUTH_SECRET: ci-dummy-secret
+      - name: Typecheck (no emit)
+        run: bunx tsc --noEmit
+
+      - name: Unit tests
+        run: bunx vitest run tests/unit
+
+      - name: Integration tests (real Postgres)
+        run: bunx vitest run tests/integration
+
+      - name: Build (typecheck enforced via next.config)
         run: bun run build
 
-  docker:
-    name: Docker image & smoke test
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: |
+            test-results/
+            .next/trace
+          if-no-files-found: ignore
+
+  e2e:
     runs-on: ubuntu-latest
-    needs: quality
-    permissions:
-      contents: read
-      packages: write
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: risheh
-          POSTGRES_PASSWORD: risheh_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: risheh
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U risheh -d risheh"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/risheh
+      DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/risheh
+      AUTH_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+      DEMO_MODE: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Build image
-        uses: docker/build-push-action@v6
+      - uses: oven-sh/setup-bun@v2
         with:
-          context: .
-          load: true
-          tags: risheh:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          bun-version: latest
 
-      - name: Smoke test (boot + /api/health)
-        env:
-          PG_URL: postgresql://risheh:risheh_ci@host.docker.internal:5432/risheh?sslmode=disable
-        run: |
-          docker run -d --name risheh -p 3000:3000 \
-            -e AUTH_SECRET=smoke-secret \
-            -e DATABASE_URL="$PG_URL" \
-            -e DIRECT_DATABASE_URL="$PG_URL" \
-            --add-host=host.docker.internal:host-gateway \
-            risheh:ci
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost:3000/api/health | grep -q '"ok":true'; then
-              echo "✅ container healthy after ~$((i * 2))s"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "❌ container failed health check"
-          docker logs risheh
-          exit 1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-      - name: Compute lowercase GHCR image name
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - name: Apply schema
+        run: bunx prisma db push --skip-generate --accept-data-loss
 
-      - name: Login to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
+      - name: Seed demo data
+        run: bun prisma/seed.ts
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run E2E journeys
+        run: bunx playwright test
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
 
-      - name: Push image (main only)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v6
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          context: .
-          push: true
-          tags: |
-            ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
-          cache-from: type=gha
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Dependency audit (report, non-blocking)
+        run: bun audit --background-checks || true

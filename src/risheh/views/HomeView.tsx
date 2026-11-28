@@ -95,8 +95,8 @@ const SLIDES: CarouselSlide[] = [
 
 export function HomeView({ data, navigate, onAddToCart, onToggleFavorite }: Props) {
   const bySlug = (slug: string): ArtworkDTO | undefined =>
-    data.artworks.find((a) => a.slug === slug) ??
-    data.artworks.find((a) => a.title.includes(FEATURED.find((f) => f.slug === slug)?.title ?? "__"));
+    (data.artworks ?? []).find((a) => a.slug === slug) ??
+    (data.artworks ?? []).find((a) => a.title.includes(FEATURED.find((f) => f.slug === slug)?.title ?? "__"));
 
   const featured = FEATURED.map((f) => bySlug(f.slug)).filter(Boolean) as ArtworkDTO[];
 

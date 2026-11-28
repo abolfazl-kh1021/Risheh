@@ -1,37 +1,62 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
 
 /**
- * DEMO AUTH ADAPTER — clearly labeled.
+ * AUTH/SESSION CORE — clearly labeled.
  *
- * This project runs in demo mode: passwords are hashed with scrypt,
- * sessions are random 256-bit tokens stored server-side in SQLite and
- * referenced by an httpOnly, SameSite=Lax cookie. No real production
- * identity provider is configured yet (see docs/SECURITY.md).
+ * Passwords are hashed with scrypt (explicit parameters), sessions are random
+ * 256-bit tokens stored server-side in Postgres and referenced by an
+ * httpOnly, SameSite=Lax, signed cookie. Rate limiting moved to the
+ * Postgres-backed limiter in `src/lib/rate-limit.ts` (serverless-safe,
+ * per-IP/per-account) — see that file for the implementation.
  */
 
 const SESSION_COOKIE = "risheh_session";
 const GUEST_COOKIE = "risheh_guest";
 const SESSION_DAYS = 14;
 
+/** AUTH_SECRET is REQUIRED and must be ≥ 32 chars — no fallback, no demo secret. */
 function secret(): string {
-  return process.env.AUTH_SECRET || "risheh-demo-secret-do-not-use-in-production";
+  const s = process.env.AUTH_SECRET;
+  if (!s || s.length < 32) {
+    throw new Error(
+      "AUTH_SECRET is missing or shorter than 32 characters. Generate one with `openssl rand -hex 32`."
+    );
+  }
+  return s;
 }
 
-// ---------- Password hashing (scrypt, no plaintext ever stored) ----------
+// ---------- Password hashing (scrypt, explicit params, no plaintext stored) ----------
+
+const SCRYPT_N = 16384; // r=8, p=1 defaults — explicit for clarity/reproducibility
+const SCRYPT_R = 8;
+const SCRYPT_P = 1;
+const SCRYPT_KEYLEN = 64;
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, 64).toString("hex");
-  return `${salt}:${hash}`;
+  const hash = scryptSync(password, salt, SCRYPT_KEYLEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P }).toString("hex");
+  return `s1:${SCRYPT_N}:${SCRYPT_R}:${SCRYPT_P}:${salt}:${hash}`;
 }
 
 export function verifyPassword(password: string, stored: string): boolean {
   try {
+    if (stored.startsWith("s1:")) {
+      const [, nStr, rStr, pStr, salt, hash] = stored.split(":");
+      if (!nStr || !rStr || !pStr || !salt || !hash) return false;
+      const candidate = scryptSync(password, salt, SCRYPT_KEYLEN, {
+        N: Number(nStr),
+        r: Number(rStr),
+        p: Number(pStr),
+      });
+      const expected = Buffer.from(hash, "hex");
+      return candidate.length === expected.length && timingSafeEqual(candidate, expected);
+    }
+    // Legacy format `salt:hash` (pre-migration rows) — verified then upgraded.
     const [salt, hash] = stored.split(":");
     if (!salt || !hash) return false;
-    const candidate = scryptSync(password, salt, 64);
+    const candidate = scryptSync(password, salt, SCRYPT_KEYLEN);
     const expected = Buffer.from(hash, "hex");
     return candidate.length === expected.length && timingSafeEqual(candidate, expected);
   } catch {
@@ -59,18 +84,28 @@ export type SessionUser = {
   email: string;
   name: string;
   role: "BUYER" | "ARTISAN" | "ADMIN";
+  slug?: string | null;
   shopTitle?: string | null;
   province?: string | null;
   bio?: string | null;
   avatar?: string | null;
+  iban?: string | null;
   verified: boolean;
-  planId?: string | null;
 };
 
 export async function createSession(userId: string): Promise<void> {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  await db.session.create({ data: { token, userId, expiresAt } });
+  let ip: string | null = null;
+  let userAgent: string | null = null;
+  try {
+    const h = await headers();
+    ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    userAgent = h.get("user-agent")?.slice(0, 240) ?? null;
+  } catch {
+    /* headers unavailable outside a request scope */
+  }
+  await db.session.create({ data: { token, userId, expiresAt, ip, userAgent } });
   const store = await cookies();
   store.set(SESSION_COOKIE, signToken(token), {
     httpOnly: true,
@@ -91,6 +126,12 @@ export async function destroySession(): Promise<void> {
     }
   }
   store.delete(SESSION_COOKIE);
+}
+
+/** «خروج از همه‌ی دستگاه‌ها» — invalidates every session of the user. */
+export async function destroyAllSessions(userId: string): Promise<number> {
+  const res = await db.session.deleteMany({ where: { userId } });
+  return res.count;
 }
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
@@ -114,16 +155,42 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       email: session.user.email,
       name: session.user.name,
       role: session.user.role as SessionUser["role"],
+      slug: session.user.slug,
       shopTitle: session.user.shopTitle,
       province: session.user.province,
       bio: session.user.bio,
       avatar: session.user.avatar,
+      iban: session.user.iban,
       verified: session.user.verified,
-      planId: session.user.planId,
     };
   } catch {
     return null;
   }
+}
+
+/** Active sessions of the current user (for the sessions page, Phase 3). */
+export async function listActiveSessions(userId: string): Promise<{
+  sessions: Array<{ id: string; ip: string | null; userAgent: string | null; createdAt: Date; expiresAt: Date }>;
+  currentSessionId: string | null;
+}> {
+  const sessions = await db.session.findMany({
+    where: { userId, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, token: true, ip: true, userAgent: true, createdAt: true, expiresAt: true },
+  });
+  let currentSessionId: string | null = null;
+  try {
+    const store = await cookies();
+    const raw = store.get(SESSION_COOKIE)?.value;
+    const token = raw ? verifySigned(raw) : null;
+    if (token) currentSessionId = sessions.find((s) => s.token === token)?.id ?? null;
+  } catch {
+    /* ignore */
+  }
+  return {
+    sessions: sessions.map(({ token: _token, ...rest }) => rest),
+    currentSessionId,
+  };
 }
 
 // ---------- Guest cart key ----------
@@ -148,17 +215,13 @@ export async function ensureGuestKey(): Promise<string> {
   return key;
 }
 
-// ---------- Simple in-memory rate limiter (abuse protection) ----------
+// ---------- Server Action caller IP ----------
 
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-
-export function rateLimit(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now();
-  const bucket = rateBuckets.get(key);
-  if (!bucket || bucket.resetAt < now) {
-    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
+export async function actionIp(): Promise<string> {
+  try {
+    const h = await headers();
+    return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip")?.trim() ?? "unknown";
+  } catch {
+    return "unknown";
   }
-  bucket.count += 1;
-  return bucket.count <= limit;
 }

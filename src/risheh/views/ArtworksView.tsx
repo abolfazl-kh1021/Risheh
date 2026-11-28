@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { MSymbol } from "@/components/icons";
 import { ARTWORK_STATUS_FA, faNum, faPrice } from "@/lib/fa";
-import { createArtworkAction, setArtworkStatusAction, updateArtworkAction } from "@/lib/actions/artworks";
+import { createArtworkAction, setArtworkStatusAction, updateArtworkAction, submitForReviewWithPayAction, resubmitRejectedArtworkAction } from "@/lib/actions/artworks";
 import { IMAGE_LIBRARY } from "@/risheh/imageLibrary";
 import type { AppData, ArtworkDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -199,19 +199,29 @@ export function ArtworksView({ data, navigate, refresh }: Props) {
                     >
                       <MSymbol name="archive" size={14} />
                     </button>
-                  ) : a.status === "DRAFT" || a.status === "REJECTED" ? (
+                  ) : a.status === "DRAFT" || a.status === "REJECTED" || a.status === "EXPIRED" ? (
                     <button
                       onClick={async () => {
-                        const res = await setArtworkStatusAction(a.id, "PENDING");
+                        const res =
+                          a.status === "REJECTED"
+                            ? await resubmitRejectedArtworkAction(a.id).then((r) =>
+                                r.ok ? { ok: true as const, redirectUrl: null, message: r.message ?? "ارسال شد" } : { ok: false as const, error: r.error }
+                              )
+                            : await submitForReviewWithPayAction(a.id);
                         if (res.ok) {
-                          toast({ title: "ارسال برای بررسی", description: "اثر برای کارشناسی اصالت ارسال شد." });
-                          refresh();
+                          if (res.redirectUrl) {
+                            toast({ title: "کارمزد ثبت آگهی", description: res.message });
+                            window.location.href = res.redirectUrl;
+                          } else {
+                            toast({ title: "ارسال برای بازبینی", description: res.message ?? "اثر وارد صف بازبینی شد." });
+                            refresh();
+                          }
                         } else toast({ title: "خطا", description: res.error, variant: "destructive" });
                       }}
                       className="flex-1 py-1.5 px-2 rounded-lg bg-primary text-on-primary text-xs font-bold transition flex items-center justify-center gap-1"
                     >
                       <MSymbol name="publish" size={14} />
-                      ارسال جهت ارزیابی
+                      {a.status === "REJECTED" ? "ارسال دوباره پس از ویرایش" : "ارسال برای بازبینی"}
                     </button>
                   ) : (
                     <button
@@ -246,7 +256,8 @@ export function ArtworksView({ data, navigate, refresh }: Props) {
 function StatusChip({ status }: { status: string }) {
   const map: Record<string, { c: string; icon: string }> = {
     PUBLISHED: { c: "bg-secondary text-white", icon: "check_circle" },
-    PENDING: { c: "bg-tertiary-fixed-dim text-tertiary-container", icon: "hourglass_top" },
+    PENDING_REVIEW: { c: "bg-tertiary-fixed-dim text-tertiary-container", icon: "hourglass_top" },
+    EXPIRED: { c: "bg-surface-container-high text-outline", icon: "schedule" },
     DRAFT: { c: "bg-surface-container text-on-surface-variant", icon: "edit_note" },
     REJECTED: { c: "bg-error text-white", icon: "cancel" },
     ARCHIVED: { c: "bg-surface-container-high text-outline", icon: "archive" },
@@ -300,8 +311,8 @@ function ArtworkEditor({
     setBusy(true);
     const payload = { ...form, images: form.images };
     const res = artwork
-      ? await updateArtworkAction(artwork.id, payload, publish)
-      : await createArtworkAction(payload, publish);
+      ? await updateArtworkAction(artwork.id, payload)
+      : await createArtworkAction(payload);
     setBusy(false);
     if (res.ok) {
       toast({ title: "اثر", description: res.message ?? "ذخیره شد." });

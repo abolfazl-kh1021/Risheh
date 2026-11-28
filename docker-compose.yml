@@ -25,9 +25,15 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Session-cookie signing secret. Set a real one for any serious use:
-      #   AUTH_SECRET=$(openssl rand -hex 32) docker compose up -d
-      AUTH_SECRET: ${AUTH_SECRET:-change-me-in-production}
+      # Session-cookie signing secret — REQUIRED, no default (container refuses
+      # to boot with a weak/absent secret; generate: openssl rand -hex 32)
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET: openssl rand -hex 32}
+      # Demo mode: seed sample data ONLY when explicitly true (otherwise no
+      # seed and no default accounts — create admin with `admin:create`).
+      DEMO_MODE: ${DEMO_MODE:-false}
+      # Payment provider (demo | zarinpal-skeleton) + cron secret.
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-demo}
+      CRON_SECRET: ${CRON_SECRET:-}
       # Runtime (Prisma Client) connection — direct inside the compose network.
       DATABASE_URL: postgresql://risheh:${POSTGRES_PASSWORD:-risheh_local_pw}@db:5432/risheh?sslmode=disable&connection_limit=10&pool_timeout=20&connect_timeout=15
       # CLI/migrations connection (migrate deploy in the entrypoint).

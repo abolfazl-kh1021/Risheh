@@ -1,42 +1,31 @@
 "use server";
 
 import { z } from "zod";
-import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { db, dbTx } from "@/lib/db";
-import { getCurrentUser, getGuestKey, rateLimit } from "@/lib/session";
-import { invalidatePublicCatalog } from "@/lib/data";
+import { getCurrentUser, getGuestKey, ensureGuestKey } from "@/lib/session";
+import { rateLimit, actionIp } from "@/lib/rate-limit";
+import { getPaymentProvider } from "@/lib/payments";
+import { availableStock } from "@/lib/payments/finalize";
 import { evaluateDiscountForCheckout } from "@/lib/discount-engine";
+import { assertTransition, ORDER_MACHINE, SELLER_ORDER_MACHINE, RETURN_MACHINE, deriveOrderStatus } from "@/lib/state-machines";
+import type { OrderStatus } from "@prisma/client";
+import { getNumberSetting } from "@/lib/settings";
+import { uniqueOrderNumber, uniqueInvoiceNumber } from "@/lib/ids";
+import { notify } from "@/lib/notify";
 import type { ActionResult } from "@/lib/actions/auth";
 
 /**
- * DEMO PAYMENT ADAPTER — clearly labeled simulation.
- * No real bank gateway is configured (see docs/DEPLOYMENT.md).
- * The payment result is produced by this server-side adapter only after
- * a server-issued `authority` is verified; a client redirect or query
- * parameter alone is never treated as proof of payment.
+ * Orders — server-authoritative checkout (M5/M6/M7, C2C §۴.۴/§۴.۵).
  *
- * Concurrency & consistency rules implemented here (docs/SECURITY.md §5):
- *  - Prices/totals/discounts are ALWAYS recomputed server-side from the DB.
- *  - Payment finalization claims the PENDING row atomically
- *    (`updateMany … status: "PENDING"`) → duplicate submissions cannot
- *    double-finalize (idempotency, M6).
- *  - Stock decrement is guarded (`stock >= qty`) inside one interactive
- *    transaction → inventory can never go negative; a failed guard rolls
- *    back the whole finalization atomically (M5).
- *  - Ledger entries are written from net (post-discount) item shares so the
- *    10% commission matches the recorded sale exactly (M8).
- *  - Cancelling a paid order restores stock and reverses its ledger entries.
+ * Rules enforced here (never on the client):
+ *  - prices/totals recomputed from DB rows;
+ *  - stock availability = physical stock − ACTIVE reservations (15-minute holds);
+ *  - discount re-validated server-side, consumed atomically at finalize;
+ *  - payment created through the PaymentProvider boundary and finalized ONLY
+ *    by /api/payment/callback (see payments/finalize.ts);
+ *  - every status change goes through the state machine + writes an OrderEvent.
  */
-
-const SHIPPING_METHODS: Record<string, number> = {
-  free: 0, // ارسال رایگان بیمه‌شده ریشه
-  courier: 50000, // پیک اختصاصی و بیمه‌شده ریشه
-  tipax: 75000, // ارسال سریع تیپاکس سراسری
-};
-
-/** 10% platform commission — demo accounting model (M8). */
-const COMMISSION_RATE = 0.1;
 
 const addressSchema = z.object({
   buyerName: z.string().min(2, "نام گیرنده الزامی است").max(60),
@@ -53,16 +42,18 @@ const addressSchema = z.object({
     .optional()
     .or(z.literal("")),
   note: z.string().max(300).optional().or(z.literal("")),
-  shippingMethod: z.enum(["free", "courier", "tipax"]).default("free"),
+  shippingMethodId: z.string().min(1, "روش ارسال الزامی است"),
   // Optional checkout discount code (S7) — validated + recomputed server-side.
   discountCode: z.string().max(40).optional().or(z.literal("")),
+  // Optional saved address id (address book, Phase 3)
+  addressId: z.string().optional().or(z.literal("")),
 });
 
 export type CreateOrderResult =
   | {
       ok: true;
       orderNumber: string;
-      authority: string;
+      redirectUrl: string; // gateway page (demo or real)
       amount: number;
       subtotal: number;
       discount: number;
@@ -74,7 +65,8 @@ export type CreateOrderResult =
 export async function createOrderAction(
   input: z.input<typeof addressSchema>
 ): Promise<CreateOrderResult> {
-  if (!rateLimit("checkout", 20, 60_000)) {
+  const ip = actionIp();
+  if (!(await rateLimit(`checkout|${ip}`, 12, 60_000))) {
     return { ok: false, error: "تعداد درخواست‌ها بیش از حد مجاز است؛ کمی بعد تلاش کنید." };
   }
   const parsed = addressSchema.safeParse(input);
@@ -83,25 +75,36 @@ export async function createOrderAction(
   }
 
   const user = await getCurrentUser();
-  const guestKey = await getGuestKey();
+  const guestKey = await ensureGuestKey();
   const cartItems = await db.cartItem.findMany({
-    where: user ? { userId: user.id } : { guestKey: guestKey ?? "__none__" },
+    where: user ? { userId: user.id } : { guestKey },
     include: { artwork: { include: { seller: true } } },
   });
-
   if (cartItems.length === 0) {
     return { ok: false, error: "سبد خرید شما خالی است." };
   }
 
-  // Server-side price & stock validation — never trust client totals
+  // Shipping method lives in the DB (no hardcoded prices).
+  const shippingMethod = await db.shippingMethod.findFirst({
+    where: { id: parsed.data.shippingMethodId, active: true },
+  });
+  if (!shippingMethod) {
+    return { ok: false, error: "روش ارسال انتخابی معتبر نیست." };
+  }
+
+  // Server-side price & availability validation (reservations-aware).
   let subtotal = 0;
   for (const item of cartItems) {
     const aw = item.artwork;
     if (aw.status !== "PUBLISHED") {
       return { ok: false, error: `اثر «${aw.title}» دیگر در دسترس خرید نیست.` };
     }
-    if (aw.stock < item.quantity) {
-      return { ok: false, error: `موجودی «${aw.title}» کافی نیست؛ تنها ${aw.stock} نسخه باقی است.` };
+    const available = await availableStock(aw.id);
+    if (available < item.quantity) {
+      return {
+        ok: false,
+        error: `موجودی «${aw.title}» کافی نیست؛ تنها ${available} نسخه باقی است.`,
+      };
     }
     subtotal += aw.price * item.quantity;
   }
@@ -121,60 +124,112 @@ export async function createOrderAction(
     }
   }
 
-  // Collision-free order number (timestamp + random suffix, uniqueness-checked).
-  const orderNumber = await uniqueOrderNumber();
-  const authority = `DEMO-${randomBytes(12).toString("hex")}`;
-  const shipping = SHIPPING_METHODS[parsed.data.shippingMethod] ?? 0;
+  const shipping = shippingMethod.priceToman;
   const total = Math.max(0, subtotal - discount) + shipping;
+  const orderNumber = await uniqueOrderNumber();
+  const reservationMinutes = await getNumberSetting("RESERVATION_MINUTES");
 
-  await db.order.create({
-    data: {
-      orderNumber,
-      buyerId: user?.id ?? null,
-      buyerName: parsed.data.buyerName.trim(),
-      buyerPhone: parsed.data.buyerPhone,
-      city: parsed.data.city.trim(),
-      address: parsed.data.address.trim(),
-      postalCode: parsed.data.postalCode || null,
-      note: parsed.data.note || null,
-      subtotal,
-      discount,
-      discountCodeId: discount ? discountCodeId : null,
-      shipping,
-      total,
-      status: "PENDING_PAYMENT",
-      items: {
-        create: cartItems.map((item) => ({
+  // Provider handshake FIRST (server-issued authority), then persist atomically.
+  const provider = getPaymentProvider();
+  let authority: string;
+  try {
+    const req = await provider.request({
+      invoiceOrOrderId: orderNumber,
+      amount: total,
+      callbackUrl: "/api/payment/callback",
+      description: `پرداخت سفارش ${orderNumber}`,
+    });
+    authority = req.authority;
+  } catch {
+    return { ok: false, error: "اتصال به درگاه پرداخت ناموفق بود؛ کمی بعد تلاش کنید." };
+  }
+
+  try {
+    await dbTx(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          orderNumber,
+          buyerId: user?.id ?? null,
+          guestKey: user ? null : guestKey,
+          buyerName: parsed.data.buyerName.trim(),
+          buyerPhone: parsed.data.buyerPhone,
+          city: parsed.data.city.trim(),
+          address: parsed.data.address.trim(),
+          postalCode: parsed.data.postalCode || null,
+          note: parsed.data.note || null,
+          shippingMethodId: shippingMethod.id,
+          subtotal,
+          discount,
+          discountCodeId: discount ? discountCodeId : null,
+          shipping,
+          total,
+          status: "PENDING_PAYMENT",
+          items: {
+            create: cartItems.map((item) => ({
+              artworkId: item.artworkId,
+              titleSnapshot: item.artwork.title,
+              imageSnapshot: (JSON.parse(item.artwork.images || "[]") as string[])[0] ?? "",
+              unitPrice: item.artwork.price, // server-verified price
+              quantity: item.quantity,
+              sellerId: item.artwork.sellerId,
+            })),
+          },
+        },
+      });
+
+      // 15-minute stock holds (Phase 1 §۴).
+      await tx.stockReservation.createMany({
+        data: cartItems.map((item) => ({
+          orderId: order.id,
           artworkId: item.artworkId,
-          titleSnapshot: item.artwork.title,
-          imageSnapshot: (JSON.parse(item.artwork.images || "[]") as string[])[0] ?? "",
-          unitPrice: item.artwork.price, // server-verified price
           quantity: item.quantity,
-          sellerId: item.artwork.sellerId,
+          expiresAt: new Date(Date.now() + reservationMinutes * 60_000),
         })),
-      },
-      payments: {
-        create: {
-          gateway: "DEMO",
+      });
+
+      const invoice = await tx.invoice.create({
+        data: {
+          number: await uniqueInvoiceNumber(),
+          payerId: user?.id ?? (await tx.user.findFirst({ where: { role: "ADMIN" }, select: { id: true } }))!.id,
+          kind: "ORDER",
+          status: "PENDING",
+          amount: total,
+          description: `پرداخت سفارش ${orderNumber} (نمایشی)`,
+          orderId: order.id,
+        },
+      });
+
+      await tx.paymentAttempt.create({
+        data: {
+          invoiceId: invoice.id,
+          orderId: order.id,
+          provider: provider.name,
           authority,
           amount: total,
           status: "PENDING",
         },
-      },
-      tracking: {
-        create: {
+      });
+
+      await tx.orderEvent.create({
+        data: {
+          orderId: order.id,
+          type: "STATUS",
           status: "PENDING_PAYMENT",
-          detail: "سفارش ثبت شد؛ در انتظار تکمیل پرداخت.",
+          detail: "سفارش ثبت شد؛ موجودی ۱۵ دقیقه برای شما رزرو شد. در انتظار تکمیل پرداخت.",
           actor: "سامانه",
         },
-      },
-    },
-  });
+      });
+    }, { timeout: 30_000 });
+  } catch (err) {
+    console.error("[orders] create failed:", err);
+    return { ok: false, error: "ثبت سفارش ناموفق بود؛ دوباره تلاش کنید." };
+  }
 
+  revalidatePath("/cart");
   return {
     ok: true,
     orderNumber,
-    authority,
+    redirectUrl: `/pay/demo/${encodeURIComponent(authority)}`,
     amount: total,
     subtotal,
     discount,
@@ -183,338 +238,565 @@ export async function createOrderAction(
   };
 }
 
-async function uniqueOrderNumber(): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const candidate = `RSH-ORD-${Date.now().toString().slice(-8)}-${randomBytes(2)
-      .toString("hex")
-      .toUpperCase()}`;
-    const exists = await db.order.findUnique({
-      where: { orderNumber: candidate },
-      select: { id: true },
-    });
-    if (!exists) return candidate;
+// ---------------------------------------------------------------------------
+// Retry payment for a failed/canceled attempt (same order, new authority)
+// ---------------------------------------------------------------------------
+
+export async function retryOrderPaymentAction(orderNumber: string): Promise<CreateOrderResult> {
+  if (!(await rateLimit(`retry-pay|${actionIp()}`, 10, 60_000))) {
+    return { ok: false, error: "تعداد درخواست‌ها بیش از حد مجاز است؛ کمی بعد تلاش کنید." };
   }
-  return `RSH-ORD-${randomBytes(6).toString("hex").toUpperCase()}`;
-}
-
-const verifySchema = z.object({
-  authority: z.string().min(6),
-  outcome: z.enum(["SUCCESS", "FAILED", "CANCELLED"]),
-});
-
-export type VerifyPaymentResult =
-  | {
-      ok: true;
-      status: "SUCCESS" | "FAILED" | "CANCELLED";
-      orderNumber: string;
-      refNumber?: string;
-      message: string;
-    }
-  | { ok: false; error: string };
-
-/** Control-flow errors used to roll back the payment transaction cleanly. */
-class AlreadyFinalizedError extends Error {}
-class InsufficientStockError extends Error {
-  constructor(public title: string) {
-    super(`stock: ${title}`);
-  }
-}
-
-export async function verifyDemoPaymentAction(
-  input: z.input<typeof verifySchema>
-): Promise<VerifyPaymentResult> {
-  const parsed = verifySchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "پارامترهای پرداخت نامعتبر است." };
-
-  const payment = await db.paymentAttempt.findUnique({
-    where: { authority: parsed.data.authority },
-    include: { order: { include: { items: true } } },
-  });
-  if (!payment) return { ok: false, error: "شناسه پرداخت یافت نشد." };
-
-  // Session identity (for cart clearing / redemption) — read before the tx.
-  const sessionUser = await getCurrentUser();
+  const user = await getCurrentUser();
   const guestKey = await getGuestKey();
-
-  const outcome = parsed.data.outcome;
-  const refNumber =
-    outcome === "SUCCESS" ? `DEMO-REF-${randomBytes(5).toString("hex").toUpperCase()}` : undefined;
-
-  try {
-    await dbTx(async (tx) => {
-      if (outcome === "SUCCESS") {
-        // 1) Guarded stock decrement — never allow negative inventory (M5).
-        for (const item of payment.order.items) {
-          const upd = await tx.artwork.updateMany({
-            where: { id: item.artworkId, stock: { gte: item.quantity } },
-            data: { stock: { decrement: item.quantity } },
-          });
-          if (upd.count === 0) {
-            throw new InsufficientStockError(item.titleSnapshot);
-          }
-        }
-      }
-
-      // 2) Atomic idempotency claim — only ONE call can finalize a payment (M6).
-      const claimed = await tx.paymentAttempt.updateMany({
-        where: { id: payment.id, status: "PENDING" },
-        data: {
-          status: outcome,
-          refNumber: refNumber ?? null,
-          verifiedAt: new Date(),
-          message:
-            outcome === "SUCCESS"
-              ? "تراکنش نمایشی تایید شد — پول واقعی جابه‌جا نشده است."
-              : outcome === "FAILED"
-                ? "تراکنش نمایشی ناموفق بود (شبیه‌سازی خطای درگاه)."
-                : "پرداخت نمایشی توسط کاربر لغو شد.",
-        },
-      });
-      if (claimed.count === 0) {
-        throw new AlreadyFinalizedError();
-      }
-
-      if (outcome === "SUCCESS") {
-        // 3) Advance order + tracking.
-        await tx.order.update({ where: { id: payment.orderId }, data: { status: "PAID" } });
-        await tx.trackingEvent.create({
-          data: {
-            orderId: payment.orderId,
-            status: "PAID",
-            detail: "پرداخت (نمایشی) تایید شد؛ سفارش در صف آماده‌سازی کارگاه قرار گرفت.",
-            actor: "درگاه نمایشی ریشه",
-          },
-        });
-
-        // 4) Ledger entries from NET (post-discount) shares (M8).
-        const subtotal = payment.order.subtotal;
-        const discount = payment.order.discount;
-        const netTotal = Math.max(0, subtotal - discount);
-        const items = payment.order.items;
-        let consumed = 0;
-        for (let i = 0; i < items.length; i++) {
-          const gross = items[i].unitPrice * items[i].quantity;
-          // Proportional net share; rounding residue lands on the last item.
-          const share =
-            i === items.length - 1
-              ? netTotal - consumed
-              : Math.round((gross * netTotal) / Math.max(1, subtotal));
-          consumed += share;
-          const commission = Math.round(share * COMMISSION_RATE);
-
-          await tx.ledgerEntry.create({
-            data: {
-              sellerId: items[i].sellerId,
-              orderId: payment.orderId,
-              kind: "SALE",
-              amount: share,
-              detail: `فروش «${items[i].titleSnapshot}» — سفارش ${payment.order.orderNumber}`,
-              status: "CLEARED",
-            },
-          });
-          await tx.ledgerEntry.create({
-            data: {
-              sellerId: items[i].sellerId,
-              orderId: payment.orderId,
-              kind: "COMMISSION",
-              amount: -commission,
-              detail: `کارمزد پلتفرم (۱۰٪) سفارش ${payment.order.orderNumber}`,
-              status: "CLEARED",
-            },
-          });
-        }
-
-        // 5) Discount redemption bookkeeping (S7): promote the buyer's CLAIMED
-        //    redemption of THIS code to APPLIED, or record a first use.
-        if (discount > 0 && payment.order.discountCodeId && sessionUser) {
-          const codeId = payment.order.discountCodeId;
-          const code = await tx.discountCode.findUnique({ where: { id: codeId } });
-          if (code) {
-            const claimedRow = await tx.discountRedemption.findFirst({
-              where: { codeId, userId: sessionUser.id, status: "CLAIMED" },
-              orderBy: { createdAt: "asc" },
-            });
-            if (claimedRow) {
-              await tx.discountRedemption.update({
-                where: { id: claimedRow.id },
-                data: { status: "APPLIED" },
-              });
-            } else {
-              const myUses = await tx.discountRedemption.count({
-                where: { codeId, userId: sessionUser.id },
-              });
-              if (myUses < code.perUserLimit) {
-                await tx.discountRedemption.create({
-                  data: { codeId, userId: sessionUser.id, status: "APPLIED" },
-                });
-                await tx.discountCode.update({
-                  where: { id: codeId },
-                  data: { usedCount: { increment: 1 } },
-                });
-              }
-            }
-          }
-        }
-
-        // 6) Successful checkout clears the buyer's cart (order was created from it).
-        await tx.cartItem.deleteMany({
-          where: sessionUser ? { userId: sessionUser.id } : { guestKey: guestKey ?? "__none__" },
-        });
-      } else {
-        await tx.order.update({
-          where: { id: payment.orderId },
-          data: { status: outcome === "CANCELLED" ? "CANCELLED" : "PAYMENT_FAILED" },
-        });
-        await tx.trackingEvent.create({
-          data: {
-            orderId: payment.orderId,
-            status: outcome,
-            detail:
-              outcome === "CANCELLED"
-                ? "پرداخت لغو شد؛ سبد خرید شما حفظ شده است."
-                : "پرداخت ناموفق؛ می‌توانید دوباره تلاش کنید.",
-            actor: "درگاه نمایشی ریشه",
-          },
-        });
-      }
+  const order = await db.order.findUnique({
+    where: { orderNumber },
+    include: { items: true, reservations: true },
+  });
+  if (!order) return { ok: false, error: "سفارش یافت نشد." };
+  const mine = user ? order.buyerId === user.id : Boolean(guestKey && order.guestKey === guestKey);
+  if (!mine && user?.role !== "ADMIN") return { ok: false, error: "این سفارش متعلق به شما نیست." };
+  if (order.status !== "PENDING_PAYMENT" && order.status !== "PAYMENT_FAILED") {
+    return { ok: false, error: "این سفارش در وضعیت قابل پرداخت نیست." };
+  }
+  // Re-check availability before retry.
+  for (const item of order.items) {
+    const available = await availableStock(item.artworkId);
+    if (available < item.quantity) {
+      return { ok: false, error: `موجودی «${item.titleSnapshot}» کافی نیست؛ سفارش را دوباره ثبت کنید.` };
+    }
+  }
+  // Extend reservations for another window.
+  const reservationMinutes = await getNumberSetting("RESERVATION_MINUTES");
+  await db.stockReservation.updateMany({
+    where: { orderId: order.id, status: { in: ["RELEASED", "EXPIRED"] } },
+    data: { status: "ACTIVE", expiresAt: new Date(Date.now() + reservationMinutes * 60_000), releasedAt: null },
+  });
+  if (order.status === "PAYMENT_FAILED") {
+    await db.order.update({ where: { id: order.id }, data: { status: "PENDING_PAYMENT" } });
+    await db.orderEvent.create({
+      data: { orderId: order.id, type: "STATUS", status: "PENDING_PAYMENT", detail: "خریدار برای پرداخت دوباره تلاش کرد.", actor: "سامانه" },
     });
-  } catch (err) {
-    if (err instanceof AlreadyFinalizedError) {
-      return { ok: false, error: "این تراکنش قبلاً نهایی شده است." };
-    }
-    if (err instanceof InsufficientStockError) {
-      return {
-        ok: false,
-        error: `موجودی «${err.title}» پس از ثبت سفارش تغییر کرد؛ پرداخت نهایی نشد. سبد خود را بازبینی کنید.`,
-      };
-    }
-    throw err;
   }
 
-  invalidatePublicCatalog(); // stock changed on payment
-  revalidatePath("/");
+  const provider = getPaymentProvider();
+  let authority: string;
+  try {
+    const req = await provider.request({
+      invoiceOrOrderId: order.orderNumber,
+      amount: order.total,
+      callbackUrl: "/api/payment/callback",
+      description: `پرداخت سفارش ${order.orderNumber}`,
+    });
+    authority = req.authority;
+  } catch {
+    return { ok: false, error: "اتصال به درگاه پرداخت ناموفق بود؛ کمی بعد تلاش کنید." };
+  }
+  await db.paymentAttempt.create({
+    data: {
+      invoiceId: (await db.invoice.findFirst({ where: { orderId: order.id, kind: "ORDER" }, select: { id: true } }))?.id,
+      orderId: order.id,
+      provider: provider.name,
+      authority,
+      amount: order.total,
+      status: "PENDING",
+    },
+  });
   return {
     ok: true,
-    status: outcome,
-    orderNumber: payment.order.orderNumber,
-    refNumber,
-    message:
-      outcome === "SUCCESS"
-        ? "پرداخت نمایشی با موفقیت تایید شد (بدون انتقال پول واقعی)."
-        : outcome === "FAILED"
-          ? "پرداخت نمایشی ناموفق بود."
-          : "پرداخت لغو شد.",
+    orderNumber: order.orderNumber,
+    redirectUrl: `/pay/demo/${encodeURIComponent(authority)}`,
+    amount: order.total,
+    subtotal: order.subtotal,
+    discount: order.discount,
+    shipping: order.shipping,
   };
 }
 
-const statusSchema = z.object({
-  orderId: z.string().min(1),
+// ---------------------------------------------------------------------------
+// Seller sub-order transitions (M7) — per-seller, machine-guarded, escrow-aware
+// ---------------------------------------------------------------------------
+
+const sellerStatusSchema = z.object({
+  sellerOrderId: z.string().min(1),
   status: z.enum(["PREPARING", "SHIPPED", "DELIVERED", "CANCELLED"]),
   detail: z.string().max(300).optional().or(z.literal("")),
 });
 
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  PAID: ["PREPARING", "CANCELLED"],
-  PREPARING: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED"],
-  DELIVERED: [],
-  CANCELLED: [],
-  PAYMENT_FAILED: [],
-  PENDING_PAYMENT: [],
-};
-
-export async function updateOrderStatusAction(
-  input: z.input<typeof statusSchema>
+export async function updateSellerOrderStatusAction(
+  input: z.input<typeof sellerStatusSchema>
 ): Promise<ActionResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "ابتدا وارد حساب شوید." };
-  const parsed = statusSchema.safeParse(input);
+  const parsed = sellerStatusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "ورودی نامعتبر است." };
 
-  const order = await db.order.findUnique({
-    where: { id: parsed.data.orderId },
-    include: { items: true },
+  const so = await db.sellerOrder.findUnique({
+    where: { id: parsed.data.sellerOrderId },
+    include: { order: { include: { items: true } }, items: true, ledgerEntries: true },
   });
-  if (!order) return { ok: false, error: "سفارش یافت نشد." };
+  if (!so) return { ok: false, error: "زیرسفارش یافت نشد." };
 
-  // Server-side authorization: seller of items or admin
-  const isSellerOfItems = order.items.some((i) => i.sellerId === user.id);
-  if (!isSellerOfItems && user.role !== "ADMIN") {
+  // Server-side authorization: the seller of THIS sub-order or admin only.
+  if (so.sellerId !== user.id && user.role !== "ADMIN") {
     return { ok: false, error: "شما مجوز تغییر وضعیت این سفارش را ندارید." };
   }
-
-  const allowed = ALLOWED_TRANSITIONS[order.status] ?? [];
-  if (!allowed.includes(parsed.data.status)) {
-    return { ok: false, error: "گذار وضعیت برای این سفارش مجاز نیست." };
+  // A waiting-approval artisan cannot run fulfilment.
+  if (user.role === "ARTISAN") {
+    const mr = await db.memberRequest.findUnique({ where: { userId: user.id } });
+    if (mr?.status === "PENDING") {
+      return { ok: false, error: "تا تایید عضویت شما توسط مدیریت، امکان تغییر وضعیت سفارش وجود ندارد." };
+    }
   }
 
+  assertTransition(SELLER_ORDER_MACHINE, "seller-order", so.status, parsed.data.status);
+
+  const retentionDays = await getNumberSetting("RETENTION_DAYS");
+  const now = new Date();
+
   await dbTx(async (tx) => {
-    await tx.order.update({
-      where: { id: order.id },
-      data: { status: parsed.data.status },
-    });
-    await tx.trackingEvent.create({
+    await tx.sellerOrder.update({
+      where: { id: so.id },
       data: {
-        orderId: order.id,
+        status: parsed.data.status,
+        ...(parsed.data.status === "PREPARING" ? { preparedAt: now } : {}),
+        ...(parsed.data.status === "SHIPPED" ? { shippedAt: now } : {}),
+        ...(parsed.data.status === "DELIVERED" ? { deliveredAt: now } : {}),
+        ...(parsed.data.status === "CANCELLED" ? { cancelledAt: now } : {}),
+      },
+    });
+    await tx.orderEvent.create({
+      data: {
+        orderId: so.orderId,
+        sellerOrderId: so.id,
+        type: "STATUS",
         status: parsed.data.status,
         detail:
           parsed.data.detail ||
           {
             PREPARING: "سفارش در کارگاه در حال آماده‌سازی و بسته‌بندی است.",
-            SHIPPED: "مرسول به پست تحویل داده شد؛ کد رهگیری به‌زودی فعال می‌شود.",
+            SHIPPED: "مرسول به شرکت حمل تحویل داده شد (بدون کد رهگیری زنده).",
             DELIVERED: "مرسول با موفقیت به خریدار تحویل داده شد.",
-            CANCELLED: "سفارش لغو شد.",
+            CANCELLED: "این بخش از سفارش لغو شد.",
           }[parsed.data.status],
         actor: user.role === "ADMIN" ? "مدیریت ریشه" : user.shopTitle || user.name,
       },
     });
 
-    // Mark artworks sold when delivered
     if (parsed.data.status === "DELIVERED") {
-      for (const item of order.items) {
+      // Ledger: escrow step 2 — PENDING → HOLDING with availableAt = now + retention.
+      await tx.ledgerEntry.updateMany({
+        where: { sellerOrderId: so.id, kind: "SALE", status: "PENDING" },
+        data: {
+          status: "HOLDING",
+          availableAt: new Date(now.getTime() + retentionDays * 24 * 3600 * 1000),
+          detail: `فروش اقلام سفارش ${so.order.orderNumber} (در دوره نگهداری ${retentionDays} روزه)`,
+        },
+      });
+      // Bug fix: SOLD only when stock is truly exhausted (stock === 0).
+      for (const item of so.items) {
         await tx.artwork.updateMany({
-          where: { id: item.artworkId, stock: { lte: item.quantity } },
+          where: { id: item.artworkId, stock: 0 },
           data: { status: "SOLD" },
+        });
+      }
+      if (so.order.buyerId) {
+        await notify({
+          userId: so.order.buyerId,
+          type: "ORDER",
+          title: "سفارش شما تحویل شد",
+          body: `بخش مربوط به «${user.shopTitle || user.name}» از سفارش ${so.order.orderNumber} تحویل شد. تجربه خرید خود را با ثبت نظر به اشتراک بگذارید.`,
+          link: `/orders/${so.order.orderNumber}`,
         });
       }
     }
 
-    // Cancelling a paid/preparing order restores stock and reverses the
-    // ledger entries of that order so artisan balances stay consistent (M8).
     if (parsed.data.status === "CANCELLED") {
-      for (const item of order.items) {
+      // Restore stock for this sub-order's items and reverse its ledger entries.
+      for (const item of so.items) {
         await tx.artwork.updateMany({
           where: { id: item.artworkId },
           data: { stock: { increment: item.quantity } },
         });
       }
-      const previous = await tx.ledgerEntry.findMany({
-        where: { orderId: order.id },
-      });
-      for (const entry of previous) {
+      for (const entry of so.ledgerEntries) {
         await tx.ledgerEntry.create({
           data: {
             sellerId: entry.sellerId,
-            orderId: order.id,
+            sellerOrderId: entry.sellerOrderId,
+            orderId: entry.orderId,
             kind: entry.kind,
             amount: -entry.amount,
             status: "CLEARED",
-            detail: `ابطال قلم «${entry.detail ?? entry.kind}» به‌دلیل لغو سفارش ${order.orderNumber}`,
+            detail: `ابطال قلم «${entry.detail ?? entry.kind}» به‌دلیل لغو بخش ${so.id.slice(-6)} سفارش ${so.order.orderNumber}`,
           },
         });
       }
+      if (so.order.buyerId) {
+        await notify({
+          userId: so.order.buyerId,
+          type: "ORDER",
+          title: "بخشی از سفارش شما لغو شد",
+          body: `بخش مربوط به «${user.shopTitle || user.name}» از سفارش ${so.order.orderNumber} لغو و مبلغ آن بازگشت داده شد (نمایشی).`,
+          link: `/orders/${so.order.orderNumber}`,
+        });
+      }
+    }
+
+    // Derive the parent order status from its sub-orders (§۴.۴).
+    const siblings = await tx.sellerOrder.findMany({
+      where: { orderId: so.orderId },
+      select: { status: true },
+    });
+    const nextOrderStatus = deriveOrderStatus(siblings.map((s) => s.status), so.order.status);
+    const parent = await tx.order.findUnique({ where: { id: so.orderId }, select: { status: true } });
+    if (parent && parent.status !== nextOrderStatus) {
+      assertTransition(ORDER_MACHINE, "order", parent.status, nextOrderStatus);
+      await tx.order.update({ where: { id: so.orderId }, data: { status: nextOrderStatus as OrderStatus } });
+      await tx.orderEvent.create({
+        data: {
+          orderId: so.orderId,
+          type: "STATUS",
+          status: nextOrderStatus,
+          detail: `وضعیت کلی سفارش بر اساس زیرسفارش‌ها به «${nextOrderStatus}» به‌روزرسانی شد.`,
+          actor: "سامانه",
+        },
+      });
     }
 
     await tx.auditLog.create({
       data: {
         actor: user.email,
-        action: "ORDER_STATUS",
-        target: order.orderNumber,
-        detail: `تغییر وضعیت به ${parsed.data.status}`,
+        action: "SELLER_ORDER_STATUS",
+        target: so.order.orderNumber,
+        detail: `${so.id.slice(-6)} → ${parsed.data.status}`,
       },
     });
-  });
+  }, { timeout: 30_000 });
 
-  revalidatePath("/");
-  return { ok: true, message: "وضعیت سفارش به‌روزرسانی شد." };
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
+  revalidatePath("/admin");
+  return { ok: true, message: "وضعیت به‌روزرسانی شد." };
+}
+
+// ---------------------------------------------------------------------------
+// Buyer confirm delivery — escrow step is already done at seller DELIVERED;
+// confirming is the buyer's receipt acknowledgment.
+// ---------------------------------------------------------------------------
+
+export async function confirmDeliveryAction(sellerOrderId: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "ابتدا وارد حساب شوید." };
+  const so = await db.sellerOrder.findUnique({ where: { id: sellerOrderId }, include: { order: true } });
+  if (!so) return { ok: false, error: "زیرسفارش یافت نشد." };
+  if (so.order.buyerId !== user.id && user.role !== "ADMIN") {
+    return { ok: false, error: "این سفارش متعلق به شما نیست." };
+  }
+  assertTransition(SELLER_ORDER_MACHINE, "seller-order", so.status, "DELIVERED");
+  const now = new Date();
+  const retentionDays = await getNumberSetting("RETENTION_DAYS");
+  await dbTx(async (tx) => {
+    await tx.sellerOrder.update({
+      where: { id: so.id },
+      data: { status: "DELIVERED", deliveredAt: now },
+    });
+    await tx.ledgerEntry.updateMany({
+      where: { sellerOrderId: so.id, kind: "SALE", status: "PENDING" },
+      data: {
+        status: "HOLDING",
+        availableAt: new Date(now.getTime() + retentionDays * 24 * 3600 * 1000),
+      },
+    });
+    await tx.orderEvent.create({
+      data: {
+        orderId: so.orderId,
+        sellerOrderId: so.id,
+        type: "STATUS",
+        status: "DELIVERED",
+        detail: "خریدار تحویل را تایید کرد.",
+        actor: user.name,
+      },
+    });
+    await notify({
+      userId: so.sellerId,
+      type: "ORDER",
+      title: "تحویل سفارش تایید شد",
+      body: `خریدار تحویل بخش شما از سفارش ${so.order.orderNumber} را تایید کرد؛ وجه پس از دوره نگهداری قابل تسویه می‌شود.`,
+      link: "/dashboard/orders",
+    });
+  });
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
+  return { ok: true, message: "تحویل تایید شد. سپاس از خرید شما." };
+}
+
+// ---------------------------------------------------------------------------
+// Buyer cancel (only before payment) — releases reservations
+// ---------------------------------------------------------------------------
+
+export async function cancelPendingOrderAction(orderNumber: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  const guestKey = await getGuestKey();
+  const order = await db.order.findUnique({ where: { orderNumber } });
+  if (!order) return { ok: false, error: "سفارش یافت نشد." };
+  const mine = user ? order.buyerId === user.id : Boolean(guestKey && order.guestKey === guestKey);
+  if (!mine) return { ok: false, error: "این سفارش متعلق به شما نیست." };
+  assertTransition(ORDER_MACHINE, "order", order.status, "CANCELLED");
+  await dbTx(async (tx) => {
+    await tx.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } });
+    await tx.stockReservation.updateMany({
+      where: { orderId: order.id, status: "ACTIVE" },
+      data: { status: "RELEASED", releasedAt: new Date() },
+    });
+    await tx.paymentAttempt.updateMany({
+      where: { orderId: order.id, status: "PENDING" },
+      data: { status: "CANCELED", verifiedAt: new Date(), message: "سفارش پیش از پرداخت توسط خریدار لغو شد." },
+    });
+    await tx.invoice.updateMany({
+      where: { orderId: order.id, status: "PENDING" },
+      data: { status: "CANCELED" },
+    });
+    await tx.orderEvent.create({
+      data: { orderId: order.id, type: "STATUS", status: "CANCELLED", detail: "سفارش پیش از پرداخت توسط خریدار لغو شد.", actor: user?.name ?? "مهمان" },
+    });
+  });
+  revalidatePath("/orders");
+  return { ok: true, message: "سفارش لغو شد." };
+}
+
+// ---------------------------------------------------------------------------
+// Returns (مرجوعی) with ledger reversal
+// ---------------------------------------------------------------------------
+
+const returnSchema = z.object({
+  orderItemId: z.string().min(1),
+  reason: z.string().min(3, "دلیل مرجوعی الزامی است").max(200),
+  detail: z.string().max(600).optional().or(z.literal("")),
+});
+
+export async function requestReturnAction(input: z.input<typeof returnSchema>): Promise<ActionResult> {
+  if (!(await rateLimit(`return|${actionIp()}`, 8, 60_000))) {
+    return { ok: false, error: "تعداد درخواست‌ها بیش از حد مجاز است؛ کمی بعد تلاش کنید." };
+  }
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "ابتدا وارد حساب شوید." };
+  const parsed = returnSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "ورودی نامعتبر است" };
+
+  const item = await db.orderItem.findUnique({
+    where: { id: parsed.data.orderItemId },
+    include: { order: true, sellerOrder: true },
+  });
+  if (!item) return { ok: false, error: "قلم سفارش یافت نشد." };
+  if (item.order.buyerId !== user.id) return { ok: false, error: "این سفارش متعلق به شما نیست." };
+  if (item.order.status !== "DELIVERED") {
+    return { ok: false, error: "درخواست مرجوعی تنها پس از تحویل سفارش امکان‌پذیر است." };
+  }
+  if (item.sellerOrder?.status !== "DELIVERED") {
+    return { ok: false, error: "بخش مربوط به این فروشنده هنوز در وضعیت تحویل‌شده نیست." };
+  }
+  const existing = await db.returnRequest.findFirst({ where: { orderItemId: item.id, status: { notIn: ["REJECTED"] } } });
+  if (existing) return { ok: false, error: "برای این قلم یک درخواست مرجوعی فعال وجود دارد." };
+
+  await db.returnRequest.create({
+    data: {
+      orderItemId: item.id,
+      sellerOrderId: item.sellerOrderId,
+      buyerId: user.id,
+      reason: parsed.data.reason.trim(),
+      detail: parsed.data.detail || null,
+      status: "PENDING",
+    },
+  });
+  await db.orderEvent.create({
+    data: {
+      orderId: item.orderId,
+      sellerOrderId: item.sellerOrderId,
+      type: "RETURN",
+      status: "PENDING",
+      detail: `درخواست مرجوعی «${item.titleSnapshot}» ثبت شد: ${parsed.data.reason}`,
+      actor: user.name,
+    },
+  });
+  await notify({
+    userId: item.sellerId,
+    type: "ORDER",
+    title: "درخواست مرجوعی جدید",
+    body: `برای «${item.titleSnapshot}» در سفارش ${item.order.orderNumber} درخواست مرجوعی ثبت شد.`,
+    link: "/dashboard/orders",
+  });
+  revalidatePath("/orders");
+  return { ok: true, message: "درخواست مرجوعی ثبت شد و پس از بررسی مدیریت/فروشنده نتیجه اعلام می‌شود." };
+}
+
+const returnDecisionSchema = z.object({
+  returnId: z.string().min(1),
+  decision: z.enum(["APPROVED", "REJECTED", "RECEIVED", "REFUNDED"]),
+  note: z.string().max(300).optional().or(z.literal("")),
+});
+
+export async function decideReturnAction(input: z.input<typeof returnDecisionSchema>): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "ابتدا وارد حساب شوید." };
+  if (user.role !== "ADMIN") return { ok: false, error: "این عملیات فقط برای مدیریت ریشه است." };
+  const parsed = returnDecisionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "ورودی نامعتبر است." };
+
+  const rr = await db.returnRequest.findUnique({
+    where: { id: parsed.data.returnId },
+    include: { item: { include: { order: true } } },
+  });
+  if (!rr) return { ok: false, error: "درخواست مرجوعی یافت نشد." };
+  assertTransition(RETURN_MACHINE, "return", rr.status, parsed.data.decision);
+
+  await dbTx(async (tx) => {
+    await tx.returnRequest.update({
+      where: { id: rr.id },
+      data: {
+        status: parsed.data.decision,
+        resolution: parsed.data.note || null,
+        decidedAt: new Date(),
+        ...(parsed.data.decision === "REFUNDED" ? { refundedAt: new Date() } : {}),
+      },
+    });
+    await tx.orderEvent.create({
+      data: {
+        orderId: rr.item.orderId,
+        sellerOrderId: rr.sellerOrderId,
+        type: "RETURN",
+        status: parsed.data.decision,
+        detail: `وضعیت مرجوعی «${rr.item.titleSnapshot}»: ${parsed.data.decision}`,
+        actor: "مدیریت ریشه",
+      },
+    });
+
+    if (parsed.data.decision === "REFUNDED") {
+      // Reverse this item's share of the seller sub-order ledger + restore stock.
+      const so = rr.sellerOrderId
+        ? await tx.sellerOrder.findUnique({ where: { id: rr.sellerOrderId }, include: { ledgerEntries: true } })
+        : null;
+      if (so) {
+        const itemGross = rr.item.unitPrice * rr.item.quantity;
+        const soGross = so.gross || 1;
+        const share = Math.floor((itemGross * (so.net - 0)) / soGross);
+        const commissionShare = Math.floor((share * so.commission) / Math.max(1, so.net));
+        await tx.ledgerEntry.create({
+          data: {
+            sellerId: so.sellerId,
+            sellerOrderId: so.id,
+            orderId: so.orderId,
+            kind: "ADJUSTMENT",
+            amount: -share,
+            status: "CLEARED",
+            detail: `بازگشت وجه مرجوعی «${rr.item.titleSnapshot}» سفارش ${rr.item.order.orderNumber} (نمایشی)`,
+          },
+        });
+        await tx.ledgerEntry.create({
+          data: {
+            sellerId: so.sellerId,
+            sellerOrderId: so.id,
+            orderId: so.orderId,
+            kind: "ADJUSTMENT",
+            amount: commissionShare,
+            status: "CLEARED",
+            detail: `بازگشت کارمزد بخش مرجوع‌شده سفارش ${rr.item.order.orderNumber} (نمایشی)`,
+          },
+        });
+        await tx.platformRevenueEntry.create({
+          data: {
+            kind: "COMMISSION",
+            amount: -commissionShare,
+            sellerId: so.sellerId,
+            orderId: so.orderId,
+            sellerOrderId: so.id,
+            detail: `کاهش کارمزد به‌دلیل مرجوعی سفارش ${rr.item.order.orderNumber}`,
+          },
+        });
+      }
+      await tx.artwork.updateMany({
+        where: { id: rr.item.artworkId },
+        data: { stock: { increment: rr.item.quantity } },
+      });
+      await notify({
+        userId: rr.buyerId,
+        type: "ORDER",
+        title: "مبلغ مرجوعی بازگشت داده شد (نمایشی)",
+        body: `مبلغ «${rr.item.titleSnapshot}» به حساب شما بازگشت داده شد (شبیه‌سازی).`,
+        link: `/orders/${rr.item.order.orderNumber}`,
+      });
+    }
+    await tx.auditLog.create({
+      data: { actor: user.email, action: "RETURN_DECISION", target: rr.id, detail: parsed.data.decision },
+    });
+  }, { timeout: 30_000 });
+
+  revalidatePath("/admin");
+  revalidatePath("/orders");
+  return { ok: true, message: "وضعیت مرجوعی به‌روزرسانی شد." };
+}
+
+// ---------------------------------------------------------------------------
+// Guest order tracking (orderNumber + phone, rate-limited; no OTP — Won't)
+// ---------------------------------------------------------------------------
+
+const trackSchema = z.object({
+  orderNumber: z.string().min(6).max(40),
+  phone: z
+    .string()
+    .transform((v) => v.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))))
+    .pipe(z.string().regex(/^09\d{9}$/, "شماره موبایل معتبر نیست")),
+});
+
+export type GuestTrackResult =
+  | {
+      ok: true;
+      order: {
+        orderNumber: string;
+        status: string;
+        createdAt: string;
+        total: number;
+        items: Array<{ title: string; quantity: number; image: string; sellerId: string }>;
+        events: Array<{ type: string; status?: string; detail?: string; actor: string; createdAt: string }>;
+      };
+    }
+  | { ok: false; error: string };
+
+export async function trackGuestOrderAction(input: z.input<typeof trackSchema>): Promise<GuestTrackResult> {
+  const ip = actionIp();
+  if (!(await rateLimit(`track|${ip}`, 10, 60_000))) {
+    return { ok: false, error: "تعداد تلاش‌ها بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید." };
+  }
+  const parsed = trackSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "ورودی نامعتبر است" };
+
+  const order = await db.order.findUnique({
+    where: { orderNumber: parsed.data.orderNumber.trim() },
+    include: { items: true, events: { orderBy: { createdAt: "asc" } } },
+  });
+  // Same generic message for "not found" and "wrong phone" — no enumeration.
+  if (!order || order.buyerPhone !== parsed.data.phone) {
+    return { ok: false, error: "سفارشی با این شماره سفارش و شماره موبایل یافت نشد." };
+  }
+  return {
+    ok: true,
+    order: {
+      orderNumber: order.orderNumber,
+      status: order.status,
+      createdAt: order.createdAt.toISOString(),
+      total: order.total,
+      items: order.items.map((i) => ({
+        title: i.titleSnapshot,
+        quantity: i.quantity,
+        image: i.imageSnapshot,
+        sellerId: i.sellerId,
+      })),
+      events: order.events.map((e) => ({
+        type: e.type,
+        status: e.status ?? undefined,
+        detail: e.detail ?? undefined,
+        actor: e.actor,
+        createdAt: e.createdAt.toISOString(),
+      })),
+    },
+  };
 }

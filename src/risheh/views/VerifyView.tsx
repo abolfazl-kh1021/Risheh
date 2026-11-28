@@ -11,13 +11,13 @@ const SAMPLE_TIMELINE = [
   { date: "زمستان ۱۴۰۰", title: "رنگرزی ارگانیک", desc: "عمل‌آوری در پاتیل‌های مسین با جوهر گیاهی روناس، پوست گردو و برگ مو." },
   { date: "بهار - پاییز ۱۴۰۱", title: "چله‌کشی و بافت", desc: "۳۶۰ روز بافت بی‌وقفه با گره ترکی متقارن بر دار ارگونومیک چوبی." },
   { date: "دی ۱۴۰۱", title: "پرداخت و شویش", desc: "لبه‌دوزی چرمی، شیرازه‌پیچی ابریشمی و شستشوی سنتی با عصاره چوبک." },
-  { date: "بهمن ۱۴۰۲", title: "پلاک‌گذاری ریشه", desc: "تایید نهایی آزمایشگاهی و نصب پلاک فلزی با شناسه یکتا." },
+  { date: "بهمن ۱۴۰۲", title: "تایید کارشناس و ثبت رکورد دیجیتال", desc: "تایید نهایی کارشناس ریشه و ثبت رکورد دیجیتال با شناسه یکتا در همین سامانه (نمایشی؛ بدون آزمایش فیزیکی)." },
 ];
 
 const SECURITY_GUIDE = [
-  { icon: "badge", title: "میکروپرینت پلاک برنجی", desc: "پلاک برنجی متصل به پشت اثر با لیزر نانو حکاکی شده و کلمه «RISHEH CRAFTS» با ذره‌بین در حاشیه شماره سریال خوانا است." },
-  { icon: "qr_code_2", title: "بارکد رمزنگاری‌شده ECC", desc: "کد دوبعدی روی پلاک با اسکن از طریق دوربین، مستقیماً به همین نشانی معتبر در سرور امنیتی ریشه متصل می‌گردد." },
-  { icon: "security", title: "نخ امنیتی در بافت شناسنامه", desc: "شناسنامه فیزیکی روی کاغذ پنبه‌ای زرافشان چاپ شده و در برابر نور ماوراءبنفش، تارهای طلایی درخشان هویدا می‌شود." },
+  { icon: "badge", title: "میکروپرینت پلاک (ایده آتی)", desc: "پیشنهاد طراحی: پلاک برنجی با حکاکی لیزری و میکروپرینت «RISHEH CRAFTS» — در نسخه فعلی پیاده‌سازی فیزیکی ندارد." },
+  { icon: "qr_code_2", title: "کد دوبعدی استعلام (ایده آتی)", desc: "پیشنهاد طراحی: کد دوبعدی روی پلاک که به صفحه استعلام همین سامانه می‌رسد — استعلام برخط الان فقط با تایپ کد انجام می‌شود." },
+  { icon: "security", title: "ویژگی‌های امنیتی چاپی (ایده آتی)", desc: "پیشنهاد طراحی برای شناسنامه چاپی در نسخه‌های آتی — در نسخه فعلی هیچ شناسنامه فیزیکی صادر نمی‌شود و رکورد فقط دیجیتال است." },
 ];
 
 export function VerifyView() {
@@ -264,7 +264,7 @@ export function VerifyView() {
               {result.title && <p className="text-sm text-on-tertiary-fixed-variant mt-1">{result.title}</p>}
               {result.code && <p className="text-xs font-bold text-on-tertiary-fixed-variant mt-1">کد اثر: {result.code}</p>}
               <p className="text-xs text-on-tertiary-fixed-variant mt-3 leading-relaxed max-w-md mx-auto">
-                {result.message} وضعیت آزمایشگاه: {LAB_STATUS_FA[result.labStatus ?? "QUEUED"] ?? result.labStatus}
+                {result.message} وضعیت صف اصالت (رکورد دیجیتال): {LAB_STATUS_FA[result.labStatus ?? "QUEUED"] ?? result.labStatus}
               </p>
             </div>
           )}

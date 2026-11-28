@@ -14,6 +14,7 @@ export function SiteHeader({
   onNavigate,
   onSearch,
   onLogout,
+  unreadNotifications = 0,
 }: {
   user: SessionUserDTO;
   cartCount: number;
@@ -22,6 +23,7 @@ export function SiteHeader({
   onNavigate: (to: string) => void;
   onSearch: (q: string) => void;
   onLogout: () => void;
+  unreadNotifications?: number;
 }) {
   const [q, setQ] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -89,6 +91,24 @@ export function SiteHeader({
               <MSymbol name="favorite_border" size={17} />
               <span className="hidden sm:inline">علاقه‌مندی‌ها</span>
             </button>
+            {user && (
+              <>
+                <span className="text-[#23534d]">✦</span>
+                <button
+                  onClick={() => onNavigate("notifications")}
+                  className="relative flex items-center gap-1.5 hover:text-tertiary-fixed-dim transition-colors"
+                  aria-label="اعلان‌ها"
+                >
+                  <MSymbol name="notifications" size={17} />
+                  <span className="hidden sm:inline">اعلان‌ها</span>
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -top-1.5 -right-2 bg-red-700 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                      {faNum(Math.min(unreadNotifications, 9))}
+                    </span>
+                  )}
+                </button>
+              </>
+            )}
             <span className="text-[#23534d]">✦</span>
             <button
               onClick={() => onNavigate("cart")}

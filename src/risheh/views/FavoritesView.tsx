@@ -14,7 +14,7 @@ type Props = {
 
 export function FavoritesView({ data, navigate, onAddToCart, onToggleFavorite, isFav }: Props) {
   const favIds = data.favorites ?? [];
-  const items = data.artworks.filter((a) => favIds.includes(a.id));
+  const items = (data.artworks ?? []).filter((a) => favIds.includes(a.id));
 
   return (
     <div className="max-w-7xl mx-auto px-gutter py-space-lg pb-space-xl">

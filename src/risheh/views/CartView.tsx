@@ -15,27 +15,13 @@ type Props = {
   data: AppData;
   navigate: (to: string) => void;
   refresh: () => void;
-  onStartPayment: (p: {
-    orderNumber: string;
-    authority: string;
-    amount: number;
-    subtotal: number;
-    discount: number;
-    shipping: number;
-  }) => void;
 };
 
-const SHIPPING_OPTIONS: Array<{
-  id: "free" | "courier" | "tipax";
-  label: string;
-  price: number;
-  desc: string;
-  icon: string;
-}> = [
-  { id: "free", label: "ارسال رایگان بیمه‌شده ریشه", price: 0, desc: "بسته‌بندی ایمن و بیمه ۱۰۰٪ مرسوله — هدیه ریشه برای آثار فاخر", icon: "local_shipping" },
-  { id: "courier", label: "پیک اختصاصی و بیمه‌شده ریشه", price: 50000, desc: "تحویل درب واحد با کادر آموزش‌دیده حمل آثار فاخر", icon: "two_wheeler" },
-  { id: "tipax", label: "ارسال سریع تیپاکس سراسری", price: 75000, desc: "بسته‌بندی ضربه‌گیر ۵ لایه و هاردباکس محافظ؛ ۲ تا ۳ روز کاری", icon: "schedule" },
-];
+const SHIPPING_ICONS: Record<string, string> = {
+  free: "local_shipping",
+  courier: "two_wheeler",
+  tipax: "schedule",
+};
 
 /** Render the variant JSON as readable chips (guards against legacy/invalid values). */
 function parseVariant(variant: string): string[] {
@@ -51,10 +37,13 @@ function parseVariant(variant: string): string[] {
   }
 }
 
-export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
+export function CartView({ data, navigate, refresh }: Props) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
-  const [shipping, setShipping] = useState<"free" | "courier" | "tipax">("free");
+  const methods = data.shippingMethods ?? [];
+  const [shippingId, setShippingId] = useState(methods[0]?.id ?? "");
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const addresses = data.addresses ?? [];
   const [form, setForm] = useState({
     buyerName: data.user?.name ?? "",
     buyerPhone: "",
@@ -70,9 +59,9 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
   const [couponMsg, setCouponMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
 
-  const cart = data.cart;
+  const cart = data.cart ?? [];
   const subtotal = useMemo(() => cart.reduce((s, c) => s + c.price * c.quantity, 0), [cart]);
-  const shippingCost = SHIPPING_OPTIONS.find((o) => o.id === shipping)?.price ?? 0;
+  const shippingCost = methods.find((m) => m.id === shippingId)?.priceToman ?? 0;
   const couponEstimate = useMemo(() => {
     if (!couponInfo) return 0;
     let est =
@@ -83,6 +72,20 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
     return Math.max(0, Math.min(est, subtotal));
   }, [couponInfo, subtotal]);
   const total = subtotal - couponEstimate + shippingCost;
+
+  const applySavedAddress = (id: string) => {
+    setSelectedAddressId(id);
+    const a = addresses.find((x) => x.id === id);
+    if (!a) return;
+    setForm((f) => ({
+      ...f,
+      buyerName: a.receiverName,
+      buyerPhone: a.phone,
+      city: a.city,
+      address: `${a.province}، ${a.line1}`,
+      postalCode: a.postalCode ?? "",
+    }));
+  };
 
   const checkCoupon = async () => {
     const code = couponInput.trim();
@@ -138,23 +141,23 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
   };
 
   const checkout = async () => {
+    if (!shippingId) {
+      toast({ title: "روش ارسال", description: "یک شیوه ارسال انتخاب کنید.", variant: "destructive" });
+      return;
+    }
     setBusy(true);
     const res = await createOrderAction({
       ...form,
-      shippingMethod: shipping,
+      shippingMethodId: shippingId,
+      addressId: selectedAddressId,
       discountCode: couponInfo?.code ?? "",
     });
     setBusy(false);
     if (res.ok) {
-      onStartPayment({
-        orderNumber: res.orderNumber,
-        authority: res.authority,
-        amount: res.amount,
-        subtotal: res.subtotal,
-        discount: res.discount,
-        shipping: res.shipping,
-      });
-      navigate("payment");
+      // Full navigation to the PAYMENT GATEWAY (demo or real) — the callback
+      // decides the outcome server-side and redirects to the order page.
+      toast({ title: "سفارش ثبت شد", description: `موجودی تا پرداخت برای شما رزرو شد — سفارش ${res.orderNumber}` });
+      window.location.href = res.redirectUrl;
     } else {
       toast({ title: "ثبت سفارش ناموفق", description: res.error, variant: "destructive" });
     }
@@ -253,8 +256,8 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
                         <span className="text-sm font-bold w-6 text-center">{faNum(item.quantity)}</span>
                         <button
                           onClick={() => setQty(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.stock}
-                          title={item.quantity >= item.stock ? "اثر تک‌نسخه یا حداکثر موجودی" : undefined}
+                          disabled={item.quantity >= Math.min(item.available, item.stock)}
+                          title={item.quantity >= Math.min(item.available, item.stock) ? "اثر تک‌نسخه یا حداکثر موجودی قابل رزرو" : undefined}
                           aria-label="افزایش تعداد"
                           className={cn(
                             "p-1.5 -m-1 rounded-full",
@@ -265,7 +268,7 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
                         >
                           <MSymbol name="add" size={16} />
                         </button>
-                        {item.stock <= 1 && (
+                        {Math.min(item.available, item.stock) <= 1 && (
                           <span className="text-[10px] text-pomegranate">(تنها ۱ نسخه موجود در جهان)</span>
                         )}
                       </div>
@@ -285,6 +288,36 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
               <MSymbol name="pin_drop" className="text-secondary" />
               نشانی تحویل مرسوله
             </h2>
+            {data.user && addresses.length > 0 && (
+              <div className="mb-3 flex flex-col gap-2">
+                <p className="text-[11px] font-bold text-on-surface-variant">دفترچه نشانی‌ها:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {addresses.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => applySavedAddress(a.id)}
+                      className={cn(
+                        "text-right rounded-xl border p-2.5 text-[11px] leading-5 transition",
+                        selectedAddressId === a.id
+                          ? "border-primary bg-secondary/5"
+                          : "border-outline-variant/40 hover:border-outline bg-surface-bright"
+                      )}
+                    >
+                      <span className="font-bold text-primary">{a.title}</span>
+                      {a.isDefault && <span className="mr-1 text-[9px] text-secondary">(پیش‌فرض)</span>}
+                      <br />
+                      <span className="text-on-surface-variant">{a.city}، {a.line1}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!data.user && (
+              <p className="mb-3 text-[11px] rounded-lg px-3 py-2 bg-tertiary-fixed/40 text-on-tertiary-fixed-variant">
+                به‌عنوان مهمان خرید می‌کنید؛ پس از پرداخت می‌توانید با «شماره سفارش + شماره موبایل» سفارش را پیگیری کنید.
+              </p>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="نام تحویل‌گیرنده" value={form.buyerName} onChange={(v) => setForm({ ...form, buyerName: v })} placeholder="مثال: علیرضا شمس‌آبادی" required />
               <Field label="شماره تماس" value={form.buyerPhone} onChange={(v) => setForm({ ...form, buyerPhone: v })} placeholder="09123456789" ltr required />
@@ -305,12 +338,12 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
               شیوه ارسال و بسته‌بندی ایمن
             </h2>
             <div className="flex flex-col gap-2">
-              {SHIPPING_OPTIONS.map((o) => (
+              {methods.map((o) => (
                 <label
                   key={o.id}
                   className={cn(
                     "flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition",
-                    shipping === o.id
+                    shippingId === o.id
                       ? "border-primary bg-secondary/5"
                       : "border-outline-variant/40 hover:border-outline bg-surface-bright"
                   )}
@@ -318,21 +351,21 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
                   <input
                     type="radio"
                     name="shipping"
-                    checked={shipping === o.id}
-                    onChange={() => setShipping(o.id)}
+                    checked={shippingId === o.id}
+                    onChange={() => setShippingId(o.id)}
                     className="mt-1 accent-[#186969]"
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-bold text-primary flex items-center gap-1.5">
-                        <MSymbol name={o.icon} size={16} className="text-secondary" />
-                        {o.label}
+                        <MSymbol name={SHIPPING_ICONS[o.slug] ?? "local_shipping"} size={16} className="text-secondary" />
+                        {o.title}
                       </span>
                       <span className="text-xs font-bold text-on-tertiary-container shrink-0">
-                        {o.price === 0 ? "رایگان (هدیه ریشه)" : `${faPrice(o.price)} تومان`}
+                        {o.priceToman === 0 ? "رایگان (هدیه ریشه)" : `${faPrice(o.priceToman)} تومان`}
                       </span>
                     </div>
-                    <p className="text-[11px] text-on-surface-variant mt-1">{o.desc}</p>
+                    {o.description && <p className="text-[11px] text-on-surface-variant mt-1">{o.description}</p>}
                   </div>
                 </label>
               ))}
@@ -429,13 +462,11 @@ export function CartView({ data, navigate, refresh, onStartPayment }: Props) {
             </button>
             <p className="text-[10px] text-outline mt-2 flex items-center gap-1">
               <MSymbol name="lock" size={12} />
-              مبلغ نهایی پیش از پرداخت در سرور بازبینی و محاسبه می‌شود.
+              مبلغ نهایی و موجودی پیش از پرداخت در سرور بازبینی می‌شود؛ موجودی ۱۵ دقیقه رزرو می‌ماند.
             </p>
-            <div className="flex items-center justify-between gap-1 pt-3 mt-2 border-t border-outline-variant/30 text-[10px] text-outline">
-              <span className="flex items-center gap-1"><MSymbol name="account_balance" size={13} /> سداد ملی</span>
-              <span className="flex items-center gap-1"><MSymbol name="credit_card" size={13} /> به‌پرداخت ملت</span>
-              <span className="flex items-center gap-1"><MSymbol name="security" size={13} /> شاپرک امن</span>
-            </div>
+            <p className="mt-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[10px] px-3 py-2 leading-5">
+              درگاه پرداخت این نسخه «نمایشی» است — پول واقعی جابه‌جا نمی‌شود.
+            </p>
           </section>
 
           <section className="bg-surface-container-lowest rounded-2xl elevation-1 p-4 flex flex-col gap-3">

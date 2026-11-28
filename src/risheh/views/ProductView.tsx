@@ -41,7 +41,7 @@ const FAQ = [
 
 export function ProductView({ data, navigate, onAddToCart, onToggleFavorite, isFav, artworkId }: Shared & { artworkId: string }) {
   const { toast } = useToast();
-  const artwork = data.artworks.find((a) => a.id === artworkId);
+  const artwork = (data.artworks ?? []).find((a) => a.id === artworkId);
 
   const gallery = artwork?.images ?? [];
   const [activeImg, setActiveImg] = useState(0);
@@ -53,7 +53,7 @@ export function ProductView({ data, navigate, onAddToCart, onToggleFavorite, isF
   const related = useMemo(
     () =>
       artwork
-        ? data.artworks
+        ? (data.artworks ?? [])
             .filter((a) => a.id !== artwork.id && (a.categorySlug === artwork.categorySlug || a.featured))
             .slice(0, 4)
         : [],

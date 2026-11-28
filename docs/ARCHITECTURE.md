@@ -1,101 +1,88 @@
 # ARCHITECTURE.md
 
-## 1. Stack decision
+**Last updated:** ۱۴۰۵/۰۹/۰۸ — پس از مهاجرت به App Router و بازنویسی C2C
 
-**Next.js 16 (App Router) + TypeScript strict + Tailwind CSS 4 + Prisma/PostgreSQL (Neon).**
+## ۱) استک
 
-Reasons (see `DECISIONS.md` D1 for alternatives):
-- The project contract prefers Next.js App Router unless the audit says otherwise.
-- Server Components + Server Actions give server-side authorization and totals
-  without a separate API layer.
-- Tailwind 4 `@theme` lets the original source class names (`bg-primary-container`,
-  `text-on-surface-variant`, `gap-space-md`, …) work verbatim, which is the single
-  biggest enabler of design fidelity.
-- PostgreSQL (Neon) via Prisma is the persistence layer for Vercel deployment; for local dev a Postgres 16 instance (docker-compose) or any Postgres works. The schema was migrated from SQLite
-  Postgres for production.
+Next.js 16 (App Router) + React 19 + TypeScript strict + Tailwind 4 + Prisma 6 /
+PostgreSQL (Neon یا local). Server Actions برای همه‌ی جهش‌ها. طراحی
+«Persian Luxury Heritage» حفظ شده (`globals.css`، Vazirmatn).
 
-## 2. The single-route SPA decision (important)
-
-The sandbox preview exposes **only `/`**. The whole application therefore lives in
-one route with a **hash-based view router** (`src/risheh/router.ts`):
-
-- URLs: `#/home`, `#/categories/:slug`, `#/product/:id`, `#/cart`, `#/payment/:orderNumber`,
-  `#/login`, `#/verify`, `#/about`, `#/blog`, `#/contact`, `#/dashboard`, `#/artworks`,
-  `#/orders`, `#/finance`, `#/lab`, `#/admin`, `#/favorites`.
-- Back/forward and shareable links work; scroll resets on navigation.
-- **Next.js URL-sync fix:** Next's App Router tracks its own URL and `router.refresh()`
-  rewrites the address bar to the last URL *it* observed, which would clobber hash
-  routing. `useRouter()` therefore keeps Next's tracked URL in sync via
-  `window.history.replaceState(...)` on every hash change (`src/risheh/router.ts`).
-  Do not remove this.
-
-For a real multi-route deployment, each view maps 1:1 to a route
-(`app/(storefront)/product/[id]/page.tsx`, …) — views are already isolated components
-receiving `data` + callbacks, so the move is mechanical (documented in HANDOFF.md).
-
-## 3. Data flow
+## ۲) مسیرها (App Router واقعی — hash routing حذف شد)
 
 ```
-page.tsx (Server Component)
-  └─ loadAppData()                     # src/lib/data.ts — one query pass
-      ├─ session user                  # src/lib/session.ts (cookie → DB session)
-      ├─ categories + published artworks (+sellers, authenticity, reviews)
-      ├─ blog posts, cart (user or guestKey)
-      ├─ buyer: orders, favorites
-      ├─ artisan: own artworks, fulfilment orders, ledger, settlements, lab requests, plan
-      └─ admin: member requests, plans, transactions, audit, messages, lab queue, stats
-  └─ <RishehApp data={...}/>           # serialized DTOs (src/lib/types.ts)
-
-Client (RishehApp)
-  └─ view switch by hash → 17 view components
-  └─ mutations via Server Actions ("use server" in src/lib/actions/*)
-        └─ revalidatePath("/") + router.refresh() → server re-render
+(storefront)/
+  /                      خانه (M1)
+  /products              فهرست کامل + جستجو/مرتب/فیلتر سرور
+  /c/[slug]              صفحه دسته (۸ دسته)
+  /products/[slug]       صفحه محصول + JSON-LD + OG
+  /artisans/[slug]       صفحه عمومی استادکار (M2)
+  /cart                  سبد و تسویه‌حساب چندمرحله‌ای (M5)
+  /orders, /orders/[orderNumber]   تاریخچه + جزئیات + تایم‌لاین (M7)
+  /track                 پیگیری مهمان (شماره سفارش + موبایل)
+  /account/login, /account, /account/notifications
+  /dashboard             داشبورد نقش‌محور (M4)
+  /dashboard/{artworks,orders,finance,lab,plans}
+  /admin                 پیشخوان مدیریت (S3–S7)
+  /plans                 مقایسه عمومی پلن‌ها
+  /blog, /blog/[slug]    بلاگ (S4)
+  /verify                استعلام اصالت (M10)
+  /about /contact /app /faq /terms /privacy /shipping /discounts /favorites
+/pay/demo/[authority]    درگاه نمایشی (bare layout)
+/api/payment/callback    کال‌بک پرداخت (تنها نقطه‌ی نهایی‌سازی)
+/api/cron                cron امن با CRON_SECRET
+/api/health, /api/ready  پروب‌ها
+api/admin/revenue.csv    گزارش درآمد ادمین
+sitemap.ts / robots.ts / middleware.ts
 ```
 
-## 4. Module boundaries
+لینک‌های قدیمی `#/view/param` با `nav.ts` و aliasهای middleware به مسیرهای
+واقعی نگاشت می‌شوند.
 
-| Layer | Location | Rule |
-| --- | --- | --- |
-| Views (presentation) | `src/risheh/views/*` | No direct DB access; props in, actions out |
-| Shared UI | `src/components/*` | Reusable, data-agnostic |
-| Server Actions | `src/lib/actions/*` | Zod validation, `getCurrentUser()`, ownership/role checks, rate limiting, `revalidatePath` |
-| Data access | `src/lib/data.ts`, `db` | Only server side |
-| Formatting | `src/lib/fa.ts` | Persian numerals/dates/labels |
-| Session/auth | `src/lib/session.ts` | scrypt hashing, signed cookie, DB sessions, guest cart key, in-memory rate limiter |
-| Domain types | `src/lib/types.ts` | DTO contract between server and views |
+## ۳) جریان داده (بعد از حذف loadAppData)
 
-## 5. Key flows
+```
+layout (storefront) → loadShellData (user/cartCount/categories/unread)
+page → loader اختصاصی (select محدود + pagination)
+     → <PageView view data route/>   (client bridge با context شل)
+view → Server Actions ("use server") → revalidate
+```
 
-### Checkout & demo payment (no fake success)
-1. `createOrderAction` — validates address (Zod), recomputes subtotal from DB prices,
-   checks stock, creates Order (PENDING_PAYMENT) + items + PaymentAttempt (PENDING)
-   with a **server-issued authority**.
-2. Gateway view (`#/payment`) — labeled simulator; user picks success/failure/cancel.
-3. `verifyDemoPaymentAction` — verifies the authority server-side (status PENDING →
-   idempotent), sets payment status, on SUCCESS: decrements stock, writes
-   SALE/COMMISSION ledger entries, sets order PAID, tracking event, clears the cart.
-   The client never supplies amounts or statuses.
-4. Result view renders from DB (`data.myOrders`) for signed-in buyers or from the
-   server-verified action response held in memory for guests.
+- کش فقط داده عمومی (TTL 10s + invalidation).
+- همه‌ی جهش‌ها: Zod → getCurrentUser → نقش/مالکیت → ماشین حالت → تراکنش.
 
-### Authenticity verification
-`verifyAuthenticityAction` looks up `AuthenticityRecord` by hologram/artwork code.
-States: VERIFIED (certificate + tests), PENDING (in lab), NOT_FOUND — with the honest
-wording "کد نیافتن به معنای تقلبی بودن اثر نیست".
+## ۴) موتور اقتصادی C2C
 
-### Admin operations
-Every `src/lib/actions/admin.ts` function starts with `requireAdmin()`. Approvals
-update the DB, write `VerificationEvent`/`AuditLog` rows, and `revalidatePath`.
+- `Plan` (رایگان/برنز/نقره/طلایی) → `Subscription` (ACTIVE واحد) →
+  سقف آگهی + کارمزد ثبت + `commissionBps` همگی enforce سمت سرور.
+- چرخه آگهی: DRAFT → PENDING_REVIEW (با فاکتور کارمزد) → PUBLISHED (۶۰ روز) →
+  EXPIRED/ARCHIVED/SOLD + REJECTED با بازگشت اعتباری کارمزد.
+- سفارش چندفروشنده: `Order` ⇒ `SellerOrder` هر فروشنده؛ تخفیف نسبی با
+  largest-remainder؛ وضعیت والد مشتق؛ `OrderEvent` تایم‌لاین.
+- شبه‌escrow: SALE = PENDING → (DELIVERED) HOLDING(+availableAt) → (cron) CLEARED.
+- درآمد پلتفرم: `PlatformRevenueEntry {LISTING_FEE | SUBSCRIPTION | COMMISSION}`
+  + گزارش بازه‌ای و CSV ادمین.
+- تسویه: `PayoutRequest` PENDING→APPROVED→PAID|REJECTED با PAID اتمیک.
 
-## 6. Styling architecture
+## ۵) مرز پرداخت
 
-- `src/app/globals.css`: shadcn semantic vars mapped onto the M3 palette + full
-  token tables (see `DESIGN_SYSTEM.md`).
-- Fonts self-hosted in `public/assets/fonts/` (Vazirmatn variable + Material Symbols).
-- Images in `public/assets/img/` (120 curated files, all downloaded local).
+`src/lib/payments/*` — interface طبق سند §۴.۶؛ DemoProvider جریان واقعی را
+شبیه‌سازی می‌کند (`/pay/demo/[authority]` با برچسب «نمایشی» + کال‌بک واقعی).
+ZarinpalProvider فقط اسکلت TODO (Won't). همه‌ی خریدها از همین لایه می‌گذرند.
+اتصال بعدی: `docs/GO_LIVE_PAYMENT_CHECKLIST.md`.
 
-## 7. Testing infrastructure
+## ۶) cron و حفاظت
 
-- `bun run lint` (ESLint, next/core-web-vitals + next/typescript, React Compiler rules).
-- Browser E2E verification performed with agent-browser (see `TESTING.md`).
-- Unit test runner is not configured (no vitest) — documented gap in TESTING.md.
+`vercel.json` هر ۱۰ دقیقه `/api/cron` با `CRON_SECRET`: انقضای رزرو/سفارش/آگهی/
+اشتراک (+downgrade بایگانی مازاد)، آزادسازی نگهداری، پاکسازی نشست/باکت.
+Rate limiter در Postgres؛ هدرهای امنیتی در next.config + middleware.
+
+## ۷) آزمون‌ها
+
+- Unit (Vitest): پول/گردکردن، ماشین‌های حالت، کد/slug، ایمنی مسیر تصویر، hash.
+- Integration (Postgres واقعی): lifecycle سفارش، رقابت موجودی/تخفیف، idempotent
+  claim، لغو+برگشت ledger، ثبت‌نام هرگز ADMIN.
+- E2E (Playwright): خرید موفق/لغو، پلن استادکار، ثبت‌نام بدون ADMIN.
+- Smoke: `bun run smoke` روی BASE_URL (۲۴ چک برای M11).
+- CI: `.github/workflows/ci.yml` — lint/tsc/unit/integration/build + e2e با
+  سرویس Postgres.
